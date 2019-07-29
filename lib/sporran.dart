@@ -8,12 +8,12 @@
 library sporran;
 
 import 'dart:async';
-import 'dart:html';
 import 'dart:convert';
 
+import 'package:sporran/src/Event.dart';
 import 'package:wilt/wilt.dart';
 import 'package:wilt/wilt_browser_client.dart';
-import 'src/lawndart/lawndart.dart';
+import 'lawndart.dart';
 import 'package:json_object_lite/json_object_lite.dart';
 
 part 'src/Sporran.dart';

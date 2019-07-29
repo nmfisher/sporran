@@ -9,6 +9,12 @@ part of sporran;
 
 /// Initialisation class, passed to Sporrans constructor
 class SporranInitialiser {
+
+  /// Store
+  Store _store;
+  Store get store => _store;
+  set store(Store store) => _store = store;
+  
   /// Database name
   String _dbName;
   String get dbName => _dbName;

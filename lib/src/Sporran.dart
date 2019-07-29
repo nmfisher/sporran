@@ -29,7 +29,8 @@ class Sporran {
 
   /// Construction.
   ///
-  Sporran(SporranInitialiser initialiser) {
+  Sporran(SporranInitialiser initialiser, Stream<bool> connectivity) {
+    
     if (initialiser == null) {
       throw new SporranException(SporranException.noInitialiserEx);
     }
@@ -42,6 +43,7 @@ class Sporran {
     _database = new _SporranDatabase(
         _dbName,
         initialiser.hostname,
+        initialiser.store,
         initialiser.manualNotificationControl,
         initialiser.port,
         initialiser.scheme,
@@ -52,8 +54,13 @@ class Sporran {
     /**
      * Online/offline listeners
      */
-    window.onOnline.listen((_) => _transitionToOnline());
-    window.onOffline.listen((_) => _online = false);
+    connectivity.listen((x) {
+      if(x) {
+        _transitionToOnline();
+      } else {
+        _online = false;
+      }
+    });
   }
 
   /// Database

@@ -26,7 +26,7 @@ class _SporranDatabase {
 
   /// Construction, for Wilt we need URL and authentication parameters.
   /// For LawnDart only the database name, the store name is fixed by Sporran
-  _SporranDatabase(this._dbName, this._host,
+  _SporranDatabase(this._dbName, this._host, this._lawndart,
       [this._manualNotificationControl = false,
       this._port = "5984",
       this._scheme = "http://",
@@ -37,7 +37,10 @@ class _SporranDatabase {
   }
 
   Future _initialise() async {
-    _lawndart = await IndexedDbStore.open(this._dbName, "Sporran");
+    
+    if(_lawndart == null)
+      throw new SporranException(SporranException.noStoreEx);
+
     _lawnIsOpen = true;
     // Delete the local database unless told to preserve it.
     if (!_preserveLocalDatabase) _lawndart.nuke();
@@ -678,7 +681,7 @@ class _SporranDatabase {
           "$key-${attachment.name}-${attachmentMarkerc}";
       attachmentToCreate.rev = WiltUserUtils.getDocumentRev(document);
       attachmentToCreate.contentType = attachment.data.content_type;
-      attachmentToCreate.payload = window.btoa(attachment.data.data);
+      attachmentToCreate.payload = base64Encode(attachment.data.data);
 
       updateLocalStorageObject(
           attachmentKey, attachmentToCreate, attachmentToCreate.rev, updatedc);

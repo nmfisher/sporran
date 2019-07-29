@@ -15,9 +15,8 @@
 part of lawndart;
 
 abstract class _MapStore extends Store {
+  
   Map<String, String> storage;
-
-  _MapStore._() : super._();
 
   @override
   Future<bool> _open() async {

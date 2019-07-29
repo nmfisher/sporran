@@ -40,38 +40,15 @@
 
 library lawndart;
 
-import 'dart:html';
-import 'dart:indexed_db' as idb;
 import 'dart:async';
 
-part 'src/indexeddb_store.dart';
+part 'src/lawndart/src/_map_store.dart';
 
-part 'src/_map_store.dart';
-
-part 'src/memory_store.dart';
-
-part 'src/local_storage_store.dart';
+part 'src/lawndart/src/memory_store.dart';
 
 /// Represents a Store that can hold key/value pairs. No order
 /// is guaranteed for either keys or values.
 abstract class Store {
-  // For subclasses
-  Store._();
-
-  /// Finds the best implementation. In order: IndexedDB, LocalStorage.
-  static Future<Store> open(String dbName, String storeName,
-      [Map options]) async {
-    Store store;
-    if (IndexedDbStore.supported) {
-      store = new IndexedDbStore._(dbName, storeName);
-    } else {
-      store = new LocalStorageStore._();
-    }
-
-    await store._open();
-
-    return store;
-  }
 
   /// Opens and initializes the database.
   Future _open();

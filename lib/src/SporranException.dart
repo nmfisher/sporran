@@ -32,6 +32,8 @@ class SporranException implements Exception {
       'Invalid login credentials - user and password must be supplied';
   static const String noInitialiserEx =
       'You must supply an initialiser on construction';
+  static const String noStoreEx =
+      'You must provide a backing Store on construction';
 
   String _message = 'No Message Supplied';
   SporranException([this._message]);
