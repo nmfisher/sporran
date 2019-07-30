@@ -62,7 +62,7 @@ void main() {
         expect(sporran9.lawnIsOpen, isTrue);
       });
 
-      sporran9 = new Sporran(initialiser);
+      sporran9 = getSporran(initialiser);
       sporran9.onReady.first.then((e) => wrapper());
     });
 

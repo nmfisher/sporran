@@ -5,7 +5,9 @@
  * Copyright :  S.Hamblett@OSCF
  */
 
-part of sporran;
+import 'package:sporran/lawndart.dart';
+
+enum WiltClientType { Server, Browser }
 
 /// Initialisation class, passed to Sporrans constructor
 class SporranInitialiser {
@@ -14,7 +16,12 @@ class SporranInitialiser {
   Store _store;
   Store get store => _store;
   set store(Store store) => _store = store;
-  
+
+  ///
+  WiltClientType _clientType;
+  WiltClientType get clientType => _clientType;
+  set clientType(WiltClientType clientType) => _clientType = clientType;
+
   /// Database name
   String _dbName;
   String get dbName => _dbName;

@@ -5,8 +5,6 @@
  * Copyright :  S.Hamblett@OSCF
  */
 
-part of sporran;
-
 class SporranException implements Exception {
   /* Exception message strings */
   static const String headerEx = 'SporranException: ';

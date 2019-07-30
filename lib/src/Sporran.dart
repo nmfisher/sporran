@@ -13,7 +13,16 @@
  * 
  */
 
-part of sporran;
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:json_object_lite/json_object_lite.dart';
+import 'package:sporran/lawndart.dart';
+import 'package:sporran/src/SporranException.dart';
+import 'package:sporran/src/SporranInitialiser.dart';
+import 'package:sporran/src/SporranDatabase.dart';
+import 'package:sporran/src/WiltClientFactory.dart';
+import 'package:wilt/wilt.dart';
 
 class Sporran {
   /// Method constants
@@ -29,7 +38,7 @@ class Sporran {
 
   /// Construction.
   ///
-  Sporran(SporranInitialiser initialiser, Stream<bool> connectivity) {
+  Sporran(SporranInitialiser initialiser, Stream<bool> connectivity, WiltClientFactory wiltFactory) {
     
     if (initialiser == null) {
       throw new SporranException(SporranException.noInitialiserEx);
@@ -40,10 +49,11 @@ class Sporran {
     /**
      * Construct our database.
      */
-    _database = new _SporranDatabase(
+    _database = new SporranDatabase(
         _dbName,
         initialiser.hostname,
         initialiser.store,
+        wiltFactory,
         initialiser.manualNotificationControl,
         initialiser.port,
         initialiser.scheme,
@@ -64,7 +74,7 @@ class Sporran {
   }
 
   /// Database
-  _SporranDatabase _database;
+  SporranDatabase _database;
 
   /// Database name
   String _dbName;
@@ -207,7 +217,7 @@ class Sporran {
 
     /* Update LawnDart */
     _database.updateLocalStorageObject(
-        id, document, rev, _SporranDatabase.notUpdatedc)
+        id, document, rev, SporranDatabase.notUpdatedc)
       ..then((_) {
         /* If we are offline just return */
         if (!online) {
@@ -238,7 +248,7 @@ class Sporran {
           if (!res.error) {
             res.rev = res.jsonCouchResponse.rev;
             _database.updateLocalStorageObject(
-                id, document, rev, _SporranDatabase.updatedc);
+                id, document, rev, SporranDatabase.updatedc);
             _database.updateAttachmentRevisions(id, rev);
 
             res.ok = true;
@@ -304,7 +314,7 @@ class Sporran {
         if (!res.error) {
           res.rev = WiltUserUtils.getDocumentRev(res.jsonCouchResponse);
           _database.updateLocalStorageObject(
-              id, res.jsonCouchResponse, res.rev, _SporranDatabase.updatedc);
+              id, res.jsonCouchResponse, res.rev, SporranDatabase.updatedc);
           res.ok = true;
           res.payload = res.jsonCouchResponse;
           /**
@@ -440,9 +450,9 @@ class Sporran {
 
     /* Update LawnDart */
     final String key =
-        "$id-${attachment.attachmentName}-${_SporranDatabase.attachmentMarkerc}";
+        "$id-${attachment.attachmentName}-${SporranDatabase.attachmentMarkerc}";
     _database.updateLocalStorageObject(
-        key, attachment, attachment.rev, _SporranDatabase.notUpdatedc)
+        key, attachment, attachment.rev, SporranDatabase.notUpdatedc)
       ..then((_) {
         /* If we are offline just return */
         if (!online) {
@@ -481,7 +491,7 @@ class Sporran {
             res.rev = res.jsonCouchResponse.rev;
             newAttachment.rev = res.jsonCouchResponse.rev;
             _database.updateLocalStorageObject(key, newAttachment,
-                res.jsonCouchResponse.rev, _SporranDatabase.updatedc);
+                res.jsonCouchResponse.rev, SporranDatabase.updatedc);
             _database.updateAttachmentRevisions(id, res.jsonCouchResponse.rev);
             res.ok = true;
           }
@@ -516,7 +526,7 @@ class Sporran {
   Future deleteAttachment(String id, String attachmentName, String rev) {
     final Completer opCompleter = new Completer();
     final String key =
-        "$id-$attachmentName-${_SporranDatabase.attachmentMarkerc}";
+        "$id-$attachmentName-${SporranDatabase.attachmentMarkerc}";
 
     if (id == null) {
       return _raiseException(SporranException.deleteAttNoDocIdEx);
@@ -605,7 +615,7 @@ class Sporran {
   Future getAttachment(String id, String attachmentName) {
     final Completer opCompleter = new Completer();
     final String key =
-        "$id-$attachmentName-${_SporranDatabase.attachmentMarkerc}";
+        "$id-$attachmentName-${SporranDatabase.attachmentMarkerc}";
 
     if (id == null) {
       return _raiseException(SporranException.getAttNoDocIdEx);
@@ -659,7 +669,7 @@ class Sporran {
           res.payload = attachment;
 
           _database.updateLocalStorageObject(
-              key, attachment, res.rev, _SporranDatabase.updatedc);
+              key, attachment, res.rev, SporranDatabase.updatedc);
         } else {
           res.ok = false;
           res.payload = null;
@@ -698,7 +708,7 @@ class Sporran {
     /* Update LawnDart */
     docList.forEach((key, document) {
       updateList.add(_database.updateLocalStorageObject(
-          key, document, null, _SporranDatabase.notUpdatedc));
+          key, document, null, SporranDatabase.notUpdatedc));
     });
 
     /* Wait for Lawndart */
@@ -749,7 +759,7 @@ class Sporran {
             /* Update the documents */
             docList.forEach((key, document) {
               _database.updateLocalStorageObject(
-                  key, document, revisionsMap[key], _SporranDatabase.updatedc);
+                  key, document, revisionsMap[key], SporranDatabase.updatedc);
             });
 
             res.ok = true;
@@ -808,7 +818,7 @@ class Sporran {
             keyList.forEach((key) {
               final List temp = key.split('-');
               if ((temp.length == 3) &&
-                  (temp[2] == _SporranDatabase.attachmentMarkerc)) {
+                  (temp[2] == SporranDatabase.attachmentMarkerc)) {
                 /* Attachment, discard the key */
 
               } else {

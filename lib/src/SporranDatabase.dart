@@ -15,10 +15,17 @@
  * further details.
  * 
  */
+import 'dart:async';
+import 'dart:convert';
+import 'dart:html';
 
-part of sporran;
+import 'package:json_object_lite/json_object_lite.dart';
+import 'package:sporran/lawndart.dart';
+import 'package:sporran/src/SporranException.dart';
+import 'package:sporran/src/WiltClientFactory.dart';
+import 'package:wilt/wilt.dart';
 
-class _SporranDatabase {
+class SporranDatabase {
   /// Constants
   static final String notUpdatedc = "not_updated";
   static final String updatedc = "updated";
@@ -26,7 +33,7 @@ class _SporranDatabase {
 
   /// Construction, for Wilt we need URL and authentication parameters.
   /// For LawnDart only the database name, the store name is fixed by Sporran
-  _SporranDatabase(this._dbName, this._host, this._lawndart,
+  SporranDatabase(this._dbName, this._host, this._lawndart, this._getWiltClient,
       [this._manualNotificationControl = false,
       this._port = "5984",
       this._scheme = "http://",
@@ -36,7 +43,7 @@ class _SporranDatabase {
     _initialise();
   }
 
-  Future _initialise() async {
+  void _initialise() {
     
     if(_lawndart == null)
       throw new SporranException(SporranException.noStoreEx);
@@ -45,7 +52,7 @@ class _SporranDatabase {
     // Delete the local database unless told to preserve it.
     if (!_preserveLocalDatabase) _lawndart.nuke();
     // Instantiate a Wilt object
-    _wilt = new WiltBrowserClient(_host, _port, _scheme);
+    _wilt = _getWiltClient(_host, _port, _scheme);
     // Login
     if (_user != null) {
       _wilt.login(_user, _password);
@@ -80,8 +87,9 @@ class _SporranDatabase {
   bool _preserveLocalDatabase = false;
 
   /// The Wilt database
-  WiltBrowserClient _wilt;
-  WiltBrowserClient get wilt => _wilt;
+  Wilt _wilt;
+  WiltClientFactory _getWiltClient;
+  Wilt get wilt => _wilt;
 
   /// The Lawndart database
   Store _lawndart;
@@ -163,7 +171,7 @@ class _SporranDatabase {
           * are not present in the document itself so remove them.
           */
         attachmentsToDelete.forEach((key) {
-          _lawndart.removeByKey(key)..then((key) => removePendingDelete(key));
+          _lawndart.removeByKey(key).then((key) => removePendingDelete(key));
         });
       });
 
@@ -292,7 +300,7 @@ class _SporranDatabase {
     if (attachments.length == 0) return;
 
     /* Create our own Wilt instance */
-    final Wilt wilting = new WiltBrowserClient(_host, _port, _scheme);
+    final Wilt wilting = _getWiltClient(_host, _port, _scheme);
 
     /* Login if we are using authentication */
     if (_user != null) {
@@ -310,9 +318,9 @@ class _SporranDatabase {
           newAttachment.contentType = successResponse.contentType;
           newAttachment.payload = res.responseText;
           final String key =
-              "$id-${attachment.name}-${_SporranDatabase.attachmentMarkerc}";
+              "$id-${attachment.name}-${SporranDatabase.attachmentMarkerc}";
           updateLocalStorageObject(
-              key, newAttachment, newAttachment.rev, _SporranDatabase.updatedc);
+              key, newAttachment, newAttachment.rev, SporranDatabase.updatedc);
         }
       }
 
@@ -419,7 +427,7 @@ class _SporranDatabase {
   /// Couch wins.
   void delete(String key, String revision) {
     /* Create our own Wilt instance */
-    final Wilt wilting = new WiltBrowserClient(_host, _port, _scheme);
+    final Wilt wilting = _getWiltClient(_host, _port, _scheme);
 
     /* Login if we are using authentication */
     if (_user != null) {
@@ -436,7 +444,7 @@ class _SporranDatabase {
   /// Couch wins.
   void deleteAttachment(String key, String name, String revision) {
     /* Create our own Wilt instance */
-    final Wilt wilting = new WiltBrowserClient(_host, _port, _scheme);
+    final Wilt wilting = _getWiltClient(_host, _port, _scheme);
 
     /* Login if we are using authentication */
     if (_user != null) {
@@ -451,7 +459,7 @@ class _SporranDatabase {
   void updateAttachment(String key, String name, String revision,
       String contentType, String payload) {
     /* Create our own Wilt instance */
-    final Wilt wilting = new WiltBrowserClient(_host, _port, _scheme);
+    final Wilt wilting = _getWiltClient(_host, _port, _scheme);
 
     /* Login if we are using authentication */
     if (_user != null) {
@@ -509,7 +517,7 @@ class _SporranDatabase {
     final Completer<String> completer = new Completer<String>();
 
     /* Create our own Wilt instance */
-    final Wilt wilting = new WiltBrowserClient(_host, _port, _scheme);
+    final Wilt wilting = _getWiltClient(_host, _port, _scheme);
 
     /* Login if we are using authentication */
     if (_user != null) {
@@ -557,7 +565,7 @@ class _SporranDatabase {
     final Completer<JsonObjectLite> completer = new Completer<JsonObjectLite>();
 
     /* Create our own Wilt instance */
-    final Wilt wilting = new WiltBrowserClient(_host, _port, _scheme);
+    final Wilt wilting = _getWiltClient(_host, _port, _scheme);
 
     /* Login if we are using authentication */
     if (_user != null) {
@@ -620,7 +628,7 @@ class _SporranDatabase {
         /* Check for an attachment */
         final List keyList = key.split('-');
         if ((keyList.length == 3) &&
-            (keyList[2] == _SporranDatabase.attachmentMarkerc)) {
+            (keyList[2] == SporranDatabase.attachmentMarkerc)) {
           deleteAttachment(keyList[0], keyList[1], revision);
           /* Just in case */
           lawndart.removeByKey(key);
@@ -681,7 +689,8 @@ class _SporranDatabase {
           "$key-${attachment.name}-${attachmentMarkerc}";
       attachmentToCreate.rev = WiltUserUtils.getDocumentRev(document);
       attachmentToCreate.contentType = attachment.data.content_type;
-      attachmentToCreate.payload = base64Encode(attachment.data.data);
+      // TODO - do we need to handle non-UTF8 strings?
+      attachmentToCreate.payload = base64Encode(utf8.encode(attachment.data.data));
 
       updateLocalStorageObject(
           attachmentKey, attachmentToCreate, attachmentToCreate.rev, updatedc);

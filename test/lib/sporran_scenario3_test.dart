@@ -54,7 +54,7 @@ void main() {
         sporran9.online = false;
       });
 
-      sporran9 = new Sporran(initialiser);
+      sporran9 = getSporran(initialiser);
       sporran9.onReady.first.then((e) => wrapper());
     });
 
@@ -259,7 +259,7 @@ void main() {
       });
 
       initialiser.preserveLocal = true;
-      sporran10 = new Sporran(initialiser);
+      sporran10 = getSporran(initialiser);
       sporran10.onReady.first.then((e) => wrapper());
     });
   });

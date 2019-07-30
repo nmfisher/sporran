@@ -15,6 +15,8 @@
 part of lawndart;
 
 abstract class _MapStore extends Store {
+
+  _MapStore._();
   
   Map<String, String> storage;
 

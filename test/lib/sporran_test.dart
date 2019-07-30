@@ -9,6 +9,7 @@
 import 'dart:async';
 import 'dart:html';
 
+import 'package:sporran/lawndart.dart';
 import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:wilt/wilt.dart';
@@ -18,12 +19,14 @@ import 'sporran_test_config.dart';
 
 void logMessage(String message) {
   window.console.log(message);
-  print(message);
+  print("CONSOLE : $message");
 }
 
-void main() {
+void main() async {
+
   /* Common initialiser */
   final SporranInitialiser initialiser = new SporranInitialiser();
+  initialiser.store = await MemoryStore.open();
   initialiser.dbName = databaseName;
   initialiser.hostname = hostName;
   initialiser.manualNotificationControl = true;
@@ -33,7 +36,6 @@ void main() {
   initialiser.password = userPassword;
   initialiser.preserveLocal = false;
   Timer pause;
-  print(pause);
 
   /* Group 1 - Environment tests */
   group("1. Environment Tests - ", () {
@@ -67,7 +69,7 @@ void main() {
 
     test("0. Sporran Initialisation", () {
       print("2.0");
-      sporran = new Sporran(initialiser);
+      sporran = getSporran(initialiser);
 
       final wrapper = expectAsync0(() {
         expect(sporran, isNotNull);
@@ -82,7 +84,6 @@ void main() {
     test("1. Construction Online/Offline listener ", () {
       print("2.1");
       Sporran sporran21;
-
       final wrapper = expectAsync0(() {
         final Event offline = new Event.eventType('Event', 'offline');
         window.dispatchEvent(offline);
@@ -96,7 +97,7 @@ void main() {
       Timer pause;
 
       final wrapper1 = expectAsync1((Timer pause) {
-        sporran21 = new Sporran(initialiser);
+        sporran21 = getSporran(initialiser);
         sporran21.autoSync = false;
         sporran21.onReady.first.then((e) => wrapper());
       });
@@ -108,7 +109,7 @@ void main() {
 
     test("2. Construction Existing Database ", () {
       print("2.2");
-      Sporran sporran22 = new Sporran(initialiser);
+      Sporran sporran22 = getSporran(initialiser);
 
       final wrapper = expectAsync0(() {
         expect(sporran22, isNotNull);
@@ -120,10 +121,15 @@ void main() {
       sporran22.onReady.first.then((e) => wrapper());
     });
 
+    // Wilt has a bug whereby HttpRequest errors (like authentication failures) aren't cleanly caught.
+    // These errors propagate up and will cause the test to fail, even though everything's working as intended.
+    // To run successfully, this test requires a patch to Wilt that hasn't been submitted yet - so don't worry if the test fails for now :)
     test("3. Construction Invalid Authentication ", () {
       print("2.3");
       initialiser.password = 'none';
-      Sporran sporran23 = new Sporran(initialiser);
+      Sporran sporran23 = getSporran(initialiser);
+      
+      // reset the initialiser password so later tests can properly connect
       initialiser.password = userPassword;
 
       final wrapper = expectAsync0(() {
@@ -133,7 +139,7 @@ void main() {
       });
 
       sporran23.autoSync = false;
-      sporran23.onReady.first.then((e) => wrapper());
+      sporran23.onReady.first.then((e) { wrapper(); });
     });
 
     test("4. Put No Doc Id ", () {
@@ -329,7 +335,7 @@ void main() {
       print("2.17");
 
       try {
-        final Sporran bad = new Sporran(null);
+        final Sporran bad = getSporran(null);
         bad.toString();
       } catch (e) {
         expect(e.runtimeType.toString(), 'SporranException');
@@ -362,7 +368,7 @@ void main() {
         print(timer);
       });
 
-      sporran3 = new Sporran(initialiser);
+      sporran3 = getSporran(initialiser);
       sporran3.autoSync = false;
       sporran3.onReady.first.then((e) => wrapper());
     });
@@ -380,6 +386,8 @@ void main() {
       });
 
       onlineDoc.name = "Online";
+      sporran3.online = true;
+      
       sporran3.put(docIdPutOnline, onlineDoc)
         ..then((res) {
           wrapper(res);
@@ -434,6 +442,7 @@ void main() {
       });
 
       onlineDoc.name = "Online - Updated";
+      sporran3.online = true;
       sporran3.put(docIdPutOnline, onlineDoc, onlineDocRev)
         ..then((res) {
           wrapper(res);
@@ -559,7 +568,7 @@ void main() {
         expect(res.localResponse, isFalse);
         expect(res.id, "Billy");
       });
-
+      sporran3.online = true;
       sporran3.get("Billy")
         ..then((res) {
           wrapper(res);
@@ -613,7 +622,7 @@ void main() {
         expect(sporran4.lawnIsOpen, isTrue);
       });
 
-      sporran4 = new Sporran(initialiser);
+      sporran4 = getSporran(initialiser);
 
       sporran4.autoSync = false;
       sporran4.onReady.first.then((e) => wrapper());
@@ -859,7 +868,7 @@ void main() {
         expect(sporran5.lawnIsOpen, isTrue);
       });
 
-      sporran5 = new Sporran(initialiser);
+      sporran5 = getSporran(initialiser);
 
       sporran5.autoSync = false;
       sporran5.onReady.first.then((e) => wrapper());
@@ -964,7 +973,9 @@ void main() {
         expect(res.rev, isNull);
         expect(res.payload, isNotNull);
         final dynamic successResponse = res.payload;
+        print(successResponse);
         expect(successResponse.total_rows, equals(3));
+        
         expect(successResponse.rows[0].id, equals('docid1'));
         expect(successResponse.rows[1].id, equals('docid2'));
         expect(successResponse.rows[2].id, equals('docid3'));
@@ -1112,7 +1123,7 @@ void main() {
       });
 
       initialiser.manualNotificationControl = false;
-      sporran6 = new Sporran(initialiser);
+      sporran6 = getSporran(initialiser);
 
       sporran6.autoSync = false;
       sporran6.onReady.first.then((e) => wrapper());
@@ -1407,7 +1418,7 @@ void main() {
       });
 
       initialiser.manualNotificationControl = false;
-      sporran7 = new Sporran(initialiser);
+      sporran7 = getSporran(initialiser);
 
       sporran7.autoSync = false;
       sporran7.onReady.first.then((e) => wrapper());

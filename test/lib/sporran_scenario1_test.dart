@@ -9,13 +9,14 @@
 
 import 'dart:async';
 
+import 'package:sporran/lawndart.dart';
 import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:test/test.dart';
 import 'sporran_test_config.dart';
 import 'package:wilt/wilt.dart';
 
-void main() {
+void main() async {
   /* Common initialiser */
   final SporranInitialiser initialiser = new SporranInitialiser();
   initialiser.dbName = databaseName;
@@ -26,6 +27,7 @@ void main() {
   initialiser.username = userName;
   initialiser.password = userPassword;
   initialiser.preserveLocal = false;
+  initialiser.store = await MemoryStore.open();
   Timer pause;
   print(pause);
 
@@ -59,7 +61,8 @@ void main() {
         sporran8.online = false;
       });
 
-      sporran8 = new Sporran(initialiser);
+      sporran8 = getSporran(initialiser);
+      sporran8.sync();
       sporran8.onReady.first.then((e) => wrapper());
     });
 

@@ -13,3 +13,4 @@ doc/api/
 
 # Dart 2 additions
 .dart_tool/
+test/lib/sporran_test_config.dart
