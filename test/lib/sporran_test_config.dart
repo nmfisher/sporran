@@ -13,5 +13,5 @@ final String databaseName = 'sporrantest';
 /// used.
 
 ///
-final String userName = 'steve';
-final String userPassword = 'setacrepes';
+final String userName = 'wenwenadmin';
+final String userPassword = 'somesupersecretpassword';

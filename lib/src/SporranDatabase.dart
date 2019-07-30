@@ -17,10 +17,11 @@
  */
 import 'dart:async';
 import 'dart:convert';
-import 'dart:html';
 
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:sporran/lawndart.dart';
+import 'package:sporran/src/Event.dart';
+import 'package:sporran/src/EventFactory.dart';
 import 'package:sporran/src/SporranException.dart';
 import 'package:sporran/src/WiltClientFactory.dart';
 import 'package:wilt/wilt.dart';
@@ -33,7 +34,7 @@ class SporranDatabase {
 
   /// Construction, for Wilt we need URL and authentication parameters.
   /// For LawnDart only the database name, the store name is fixed by Sporran
-  SporranDatabase(this._dbName, this._host, this._lawndart, this._getWiltClient,
+  SporranDatabase(this._dbName, this._host, this._lawndart, this._getWiltClient, this._eventFactory,
       [this._manualNotificationControl = false,
       this._port = "5984",
       this._scheme = "http://",
@@ -90,6 +91,9 @@ class SporranDatabase {
   Wilt _wilt;
   WiltClientFactory _getWiltClient;
   Wilt get wilt => _wilt;
+
+  /// Factory to create events (primarily used for dart:html)
+  EventFactory _eventFactory;
 
   /// The Lawndart database
   Store _lawndart;
@@ -197,7 +201,7 @@ class SporranDatabase {
 
   /// Signal we are ready
   void _signalReady() {
-    final Event e = new Event.eventType('Event', 'SporranReady');
+    final Event e = _eventFactory('Event', 'SporranReady');
     _onReady.add(e);
   }
 

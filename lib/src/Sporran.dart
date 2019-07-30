@@ -18,6 +18,7 @@ import 'dart:convert';
 
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:sporran/lawndart.dart';
+import 'package:sporran/src/EventFactory.dart';
 import 'package:sporran/src/SporranException.dart';
 import 'package:sporran/src/SporranInitialiser.dart';
 import 'package:sporran/src/SporranDatabase.dart';
@@ -38,7 +39,7 @@ class Sporran {
 
   /// Construction.
   ///
-  Sporran(SporranInitialiser initialiser, Stream<bool> connectivity, WiltClientFactory wiltFactory) {
+  Sporran(SporranInitialiser initialiser, Stream<bool> connectivity, WiltClientFactory wiltFactory, EventFactory eventFactory) {
     
     if (initialiser == null) {
       throw new SporranException(SporranException.noInitialiserEx);
@@ -54,6 +55,7 @@ class Sporran {
         initialiser.hostname,
         initialiser.store,
         wiltFactory,
+        eventFactory,
         initialiser.manualNotificationControl,
         initialiser.port,
         initialiser.scheme,
