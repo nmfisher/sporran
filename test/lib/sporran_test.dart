@@ -1124,6 +1124,7 @@ void main() async {
 
       initialiser.manualNotificationControl = false;
       sporran6 = getSporran(initialiser);
+      initialiser.manualNotificationControl = true;
 
       sporran6.autoSync = false;
       sporran6.onReady.first.then((e) => wrapper());
@@ -1419,6 +1420,7 @@ void main() async {
 
       initialiser.manualNotificationControl = false;
       sporran7 = getSporran(initialiser);
+      initialiser.manualNotificationControl = true;
 
       sporran7.autoSync = false;
       sporran7.onReady.first.then((e) => wrapper());
