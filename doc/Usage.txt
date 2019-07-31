@@ -22,7 +22,7 @@ will not occur as your local revisions will always match CouchDB.
 1.2 Online
 ----------
 
-When online all document and attachment updates are comitted to local storage as NOT_UPDATED, then
+When online all document and attachment updates are committed to local storage as NOT_UPDATED, then
 CouchDb is updated, if successful the document is now marked as UPDATED in local storage and its
 revision and any new/deleted attachments are updated. If the update fails the document is left in local storage, 
 the document will only be removed from local storage if CouchDB replies with a conflicting
@@ -51,7 +51,7 @@ attachments marked as NOT_UPDATED. This procedure updates revision numbers and c
 attachments as needed, also deleted attachments are addressed. The sync method operates in
 conjunction with the CouchDB change notification interface which must be enabled for a full sync to be performed.
 The sync operation runs in the background, the user can just carry on working, they need not wait for
-the sync oeration to complete, in fact, syncing is performed transparently all the time the user is online
+the sync operation to complete, in fact, syncing is performed transparently all the time the user is online
 albeit in a more lightweight manner.
 
  
@@ -81,7 +81,7 @@ Sporran can be constructed in both online and offline modes with no extra effort
 Sporran registers event listeners for the browser online/offline events and controls these transitions
 when they occur. Online/Offline can however be selected by the client as needed using the online property.
 
-Also when constructed the local storage database is cleared or preserved depnding on the state of the 
+Also when constructed the local storage database is cleared or preserved depending on the state of the 
 preserveLocal flag. If false(default) local storage is cleared, if true local storage is preserved.
 
 3. Control API
