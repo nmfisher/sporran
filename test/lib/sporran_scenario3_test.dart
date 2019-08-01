@@ -201,7 +201,7 @@ void main() {
         expect(res.id, isNull);
         expect(res.rev, isNull);
         expect(res.payload, isNotNull);
-        expect(res.totalRows, equals(2));
+        expect(res.total_rows, equals(2));
         final List keyList = res.keyList;
         expect(keyList[0], '8docid1');
         expect(keyList[1], '8docid2');
@@ -232,7 +232,7 @@ void main() {
         expect(res.id, isNull);
         expect(res.rev, isNull);
         expect(res.payload, isNotNull);
-        expect(res.totalRows, equals(2));
+        expect(res.total_rows, equals(2));
         final List keyList = res.keyList;
         expect(keyList[0], '8docid1');
         expect(keyList[1], '8docid2');

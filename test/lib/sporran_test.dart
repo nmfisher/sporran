@@ -7,11 +7,15 @@
 @TestOn("browser")
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:html';
 
 import 'package:sporran/lawndart.dart';
 import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
+import 'package:sporran/src/SporranQuery.dart';
+import 'package:sporran/src/WiltBrowserClient2.dart';
+import 'package:stack_trace/stack_trace.dart';
 import 'package:wilt/wilt.dart';
 import 'package:wilt/wilt_browser_client.dart';
 import 'package:test/test.dart';
@@ -21,6 +25,7 @@ void logMessage(String message) {
   window.console.log(message);
   print("CONSOLE : $message");
 }
+
 
 void main() async {
 
@@ -35,7 +40,18 @@ void main() async {
   initialiser.username = userName;
   initialiser.password = userPassword;
   initialiser.preserveLocal = false;
-  Timer pause;
+  
+  /* Create a Wilt instance for when we want to interface with CouchDb directly 
+  * (e.g. dropping the database or updating directly to test that change notifications are correctly picked up).
+  */
+
+  final Wilt wilting = new WiltBrowserClient2(hostName, port, scheme);
+
+  /* Login if we are using authentication */
+  if (userName != null) {
+    wilting.login(userName, userPassword);
+  }
+
 
   /* Group 1 - Environment tests */
   group("1. Environment Tests - ", () {
@@ -64,97 +80,62 @@ void main() async {
   }, skip: false);
 
   /* Group 2 - Sporran constructor/ invalid parameter tests */
-  group("2. Constructor/Invalid Parameter Tests - ", () {
+  group("2. Constructor/Invalid Parameter Tests - ", ()  {
     Sporran sporran;
 
-    test("0. Sporran Initialisation", () {
+    test("0. Sporran Initialisation", () async {
       print("2.0");
-      sporran = getSporran(initialiser);
-
-      final wrapper = expectAsync0(() {
-        expect(sporran, isNotNull);
-        expect(sporran.dbName, databaseName);
-        expect(sporran.online, true);
-      });
-
+      sporran = await getSporran(initialiser);
       sporran.autoSync = false;
-      sporran.onReady.first.then((e) => wrapper());
+      expect(sporran, isNotNull);
+      expect(sporran.dbName, databaseName);
+      expect(sporran.online, true);
     });
 
-    test("1. Construction Online/Offline listener ", () {
+    test("1. Construction Online/Offline listener ", () async {
       print("2.1");
-      Sporran sporran21;
-      final wrapper = expectAsync0(() {
-        final Event offline = new Event.eventType('Event', 'offline');
-        window.dispatchEvent(offline);
-        expect(sporran21.online, isFalse);
-        final Event online = new Event.eventType('Event', 'online');
-        window.dispatchEvent(online);
-        expect(sporran21.online, isTrue);
-        sporran21 = null;
-      });
-
-      Timer pause;
-
-      final wrapper1 = expectAsync1((Timer pause) {
-        sporran21 = getSporran(initialiser);
-        sporran21.autoSync = false;
-        sporran21.onReady.first.then((e) => wrapper());
-      });
-
-      pause = new Timer(new Duration(seconds: 2), () {
-        wrapper1(pause);
-      });
+      var sporran21 = await getSporran(initialiser);
+      final Event offline = new Event.eventType('Event', 'offline');
+      window.dispatchEvent(offline);
+      expect(sporran21.online, isFalse);
+      final Event online = new Event.eventType('Event', 'online');
+      window.dispatchEvent(online);
+      expect(sporran21.online, isTrue);
+      sporran21 = null;
     });
 
-    test("2. Construction Existing Database ", () {
+    test("2. Construction Existing Database ", () async {
       print("2.2");
-      Sporran sporran22 = getSporran(initialiser);
-
-      final wrapper = expectAsync0(() {
-        expect(sporran22, isNotNull);
-        expect(sporran22.dbName, databaseName);
-        sporran22 = null;
-      });
-
-      sporran22.autoSync = false;
-      sporran22.onReady.first.then((e) => wrapper());
+      Sporran sporran22 = await getSporran(initialiser);
+      expect(sporran22, isNotNull);
+      expect(sporran22.dbName, databaseName);
     });
 
     // Wilt has a bug whereby HttpRequest errors (like authentication failures) aren't cleanly caught.
     // These errors propagate up and will cause the test to fail, even though everything's working as intended.
     // To run successfully, this test requires a patch to Wilt that hasn't been submitted yet - so don't worry if the test fails for now :)
-    test("3. Construction Invalid Authentication ", () {
+    test("3. Construction Invalid Authentication ", () async {
       print("2.3");
       initialiser.password = 'none';
-      Sporran sporran23 = getSporran(initialiser);
+      Sporran sporran23 = await getSporran(initialiser);
       
       // reset the initialiser password so later tests can properly connect
       initialiser.password = userPassword;
-
-      final wrapper = expectAsync0(() {
-        expect(sporran23, isNotNull);
-        expect(sporran23.dbName, databaseName);
-        sporran23 = null;
-      });
-
-      sporran23.autoSync = false;
-      sporran23.onReady.first.then((e) { wrapper(); });
+      expect(sporran23, isNotNull);
+      expect(sporran23.dbName, databaseName);
     });
 
-    test("4. Put No Doc Id ", () {
+    test("4. Put No Doc Id ", () async {
       print("2.4");
 
-      final completer = expectAsync1((e) {
-        expect(e.runtimeType.toString(), 'SporranException');
-        expect(e.toString(),
-            SporranException.headerEx + SporranException.putNoDocIdEx);
-      });
-
-      sporran.put(null, null)
-        ..then((_) {}, onError: (e) {
-          completer(e);
-        });
+      var pred = predicate((e) => 
+        e.runtimeType.toString() ==  'SporranException' &&
+        e.toString() == SporranException.headerEx + SporranException.putNoDocIdEx
+      );
+      expect(
+        () async => await sporran.put(null, null), 
+        throwsA(pred)
+      );
     });
 
     test("5. Get No Doc Id ", () {
@@ -331,11 +312,11 @@ void main() async {
       }
     });
 
-    test("17. Null Initialiser ", () {
+    test("17. Null Initialiser ", () async {
       print("2.17");
 
       try {
-        final Sporran bad = getSporran(null);
+        final Sporran bad = await getSporran(null);
         bad.toString();
       } catch (e) {
         expect(e.runtimeType.toString(), 'SporranException');
@@ -355,43 +336,30 @@ void main() async {
     final dynamic offlineDoc = new JsonObjectLite();
     String onlineDocRev;
 
-    test("1. Create and Open Sporran", () {
+    test("1. Create and Open Sporran", () async {
       print("3.1");
-
-      final wrapper1 = expectAsync0(() {
-        expect(sporran3.lawnIsOpen, isTrue);
-      });
-
-      final wrapper = expectAsync0(() {
-        expect(sporran3.dbName, databaseName);
-        final Timer timer = new Timer(new Duration(seconds: 3), wrapper1);
-        print(timer);
-      });
-
-      sporran3 = getSporran(initialiser);
+      // await wilting.deleteDatabase(databaseName);
+      wilting.db = databaseName;
+      sporran3 = await getSporran(initialiser);
+      sporran3.online = true;
       sporran3.autoSync = false;
-      sporran3.onReady.first.then((e) => wrapper());
+      expect(sporran3.dbName, databaseName);
+      expect(sporran3.lawnIsOpen, isTrue);
     });
 
-    test("2. Put Document Online docIdPutOnline", () {
+    test("2. Put Document Online docIdPutOnline", () async {
       print("3.2");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.putc);
-        expect(res.localResponse, isFalse);
-        expect(res.id, docIdPutOnline);
-        expect(res.rev, anything);
-        onlineDocRev = res.rev;
-        expect(res.payload.name, "Online");
-      });
-
       onlineDoc.name = "Online";
       sporran3.online = true;
-      
-      sporran3.put(docIdPutOnline, onlineDoc)
-        ..then((res) {
-          wrapper(res);
-        });
+      SporranQuery res = await sporran3.put(docIdPutOnline, onlineDoc);
+      print(res);
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.putc);
+      expect(res.localResponse, isFalse);
+      expect(res.id, docIdPutOnline);
+      expect(res.rev, anything);
+      onlineDocRev = res.rev;
+      expect(res.payload.name, "Online");
     });
 
     test("3. Put Document Offline docIdPutOffline", () {
@@ -412,21 +380,15 @@ void main() async {
         });
     });
 
-    test("4. Put Document Online Conflict", () {
+    test("4. Put Document Online Conflict", () async {
       print("3.4");
-      final wrapper = expectAsync1((res) {
-        expect(res.errorCode, 409);
-        expect(res.jsonCouchResponse.error, 'conflict');
-        expect(res.operation, Sporran.putc);
-        expect(res.id, docIdPutOnline);
-      });
-
       sporran3.online = true;
       onlineDoc.name = "Online";
-      sporran3.put(docIdPutOnline, onlineDoc)
-        ..then((res) {
-          wrapper(res);
-        });
+      final SporranQuery res = await sporran3.put(docIdPutOnline, onlineDoc);
+      expect(res.errorCode, 409);
+      expect(res.errorText, 'conflict');
+      expect(res.operation, Sporran.putc);
+      expect(res.id, docIdPutOnline);
     });
 
     test("5. Put Document Online Updated docIdPutOnline", () {
@@ -505,22 +467,16 @@ void main() async {
         });
     });
 
-    test("9. Get Document Online docIdPutOnline", () {
+    test("9. Get Document Online docIdPutOnline", () async {
       print("3.9");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.getc);
-        expect(res.payload.name, "Online - Updated");
-        expect(res.localResponse, isFalse);
-        expect(res.id, docIdPutOnline);
-        onlineDocRev = res.rev;
-      });
-
       sporran3.online = true;
-      sporran3.get(docIdPutOnline)
-        ..then((res) {
-          wrapper(res);
-        });
+      var res = await sporran3.get(docIdPutOnline);
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.getc);
+      expect(res.payload.name, "Online - Updated");
+      expect(res.localResponse, isFalse);
+      expect(res.id, docIdPutOnline);
+      onlineDocRev = res.rev;
     });
 
     test("10. Delete Document Offline", () {
@@ -595,7 +551,7 @@ void main() async {
     test("14. Group Pause", () {
       print("3.14");
       final wrapper = expectAsync0(() {});
-      pause = new Timer(new Duration(seconds: 3), wrapper);
+      new Timer(new Duration(seconds: 3), wrapper);
     });
   }, skip: false);
 
@@ -615,20 +571,15 @@ void main() async {
             'EX4IJTRkb7lobNUStXsB0jIXIAMSsQnWlsV+wULF4Avk9fLq2r' +
             '8a5HSE35Q3eO2XP1A1wQkZSgETvDtKdQAAAABJRU5ErkJggg==';
 
-    test("1. Create and Open Sporran", () {
+    test("1. Create and Open Sporran", () async {
       print("4.1");
-      final wrapper = expectAsync0(() {
-        expect(sporran4.dbName, databaseName);
-        expect(sporran4.lawnIsOpen, isTrue);
-      });
-
-      sporran4 = getSporran(initialiser);
-
+      sporran4 = await getSporran(initialiser);
+      expect(sporran4.dbName, databaseName);
+      expect(sporran4.lawnIsOpen, isTrue);
       sporran4.autoSync = false;
-      sporran4.onReady.first.then((e) => wrapper());
     });
 
-    test("2. Put Document Online docIdPutOnline", () {
+    test("2. Put Document Online docIdPutOnline", () async {
       print("4.2");
       final wrapper = expectAsync1((res) {
         expect(res.ok, isTrue);
@@ -717,24 +668,20 @@ void main() async {
         });
     });
 
-    test("6. Get Attachment Online docIdPutOnline", () {
+    test("6. Get Attachment Online docIdPutOnline", () async {
       print("4.6");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.getAttachmentc);
-        expect(res.id, docIdPutOnline);
-        expect(res.localResponse, isFalse);
-        expect(res.rev, anything);
-        expect(res.payload.attachmentName, "onlineAttachment");
-        expect(res.payload.contentType, 'image/png');
-        expect(res.payload.payload, attachmentPayload);
-      });
-
       sporran4.online = true;
-      sporran4.getAttachment(docIdPutOnline, "onlineAttachment")
-        ..then((res) {
-          wrapper(res);
-        });
+      dynamic res  = await sporran4.getAttachment(docIdPutOnline, "onlineAttachment");
+      print(res);
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.getAttachmentc);
+      expect(res.id, docIdPutOnline);
+      expect(res.localResponse, isFalse);
+      expect(res.rev, anything);
+      expect(res.payload.attachmentName, "onlineAttachment");
+      expect(res.payload.contentType, 'image/png');
+      expect(res.payload.payload, attachmentPayload);
+        
     });
 
     test("7. Get Attachment Offline docIdPutOffline", () {
@@ -759,7 +706,7 @@ void main() async {
         });
     });
 
-    test("8. Get Document Online docIdPutOnline", () {
+    test("8. Get Document Online docIdPutOnline", () async {
       print("4.8");
       final wrapper = expectAsync1((res) {
         expect(res.ok, isTrue);
@@ -772,29 +719,24 @@ void main() async {
       });
 
       sporran4.online = true;
+
       sporran4.get(docIdPutOnline, onlineDocRev)
         ..then((res) {
           wrapper(res);
         });
     });
 
-    test("9. Delete Attachment Online docIdPutOnline", () {
+    test("9. Delete Attachment Online docIdPutOnline", () async {
       print("4.9");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.deleteAttachmentc);
-        expect(res.id, docIdPutOnline);
-        expect(res.localResponse, isFalse);
-        onlineDocRev = res.rev;
-        expect(res.rev, anything);
-      });
-
       sporran4.online = true;
-      sporran4.deleteAttachment(
-          docIdPutOnline, "onlineAttachment", onlineDocRev)
-        ..then((res) {
-          wrapper(res);
-        });
+      sporran4.autoSync = false;
+      final dynamic res = await sporran4.deleteAttachment(docIdPutOnline, "onlineAttachment", onlineDocRev);
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.deleteAttachmentc);
+      expect(res.id, docIdPutOnline);
+      expect(res.localResponse, isFalse);
+      onlineDocRev = res.rev;
+      expect(res.rev, anything);
     });
 
     test("10. Delete Document Online docIdPutOnline", () {
@@ -861,17 +803,12 @@ void main() async {
     String docid2rev;
     String docid3rev;
 
-    test("1. Create and Open Sporran", () {
+    test("1. Create and Open Sporran", () async {
       print("5.1");
-      final wrapper = expectAsync0(() {
-        expect(sporran5.dbName, databaseName);
-        expect(sporran5.lawnIsOpen, isTrue);
-      });
-
-      sporran5 = getSporran(initialiser);
-
+      sporran5 = await getSporran(initialiser);
       sporran5.autoSync = false;
-      sporran5.onReady.first.then((e) => wrapper());
+      expect(sporran5.dbName, databaseName);
+      expect(sporran5.lawnIsOpen, isTrue);
     });
 
     test("2. Bulk Insert Documents Online", () {
@@ -1046,24 +983,19 @@ void main() async {
         });
     });
 
-    test("7. Get Database Info Online", () {
+    test("7. Get Database Info Online", () async {
       print("5.7");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.localResponse, isFalse);
-        expect(res.operation, Sporran.dbInfoc);
-        expect(res.id, isNull);
-        expect(res.rev, isNull);
-        expect(res.payload, isNotNull);
-        expect(res.payload.doc_count, 3);
-        expect(res.payload.db_name, databaseName);
-      });
-
       sporran5.online = true;
-      sporran5.getDatabaseInfo()
-        ..then((res) {
-          wrapper(res);
-        });
+      sporran5.autoSync = false;
+      SporranQuery res = await sporran5.getDatabaseInfo();
+      expect(res.ok, isTrue);
+      expect(res.localResponse, isFalse);
+      expect(res.operation, Sporran.dbInfoc);
+      expect(res.id, isNull);
+      expect(res.rev, isNull);
+      expect(res.payload, isNotNull);
+      expect(res.payload.doc_count, 3);
+      expect(res.payload.db_name, databaseName);
     });
 
     test("8. Tidy Up All Docs Online", () {
@@ -1084,14 +1016,6 @@ void main() async {
         });
     });
 
-    /*test("9. Group Pause", () {
-
-      print("5.9");
-      var wrapper = expectAsync0(() {});
-
-      Timer pause = new Timer(new Duration(seconds: 3), wrapper);
-
-    });*/
   }, skip: false);
 
   /* Group 6 - Sporran Change notification tests */
@@ -1115,19 +1039,14 @@ void main() async {
     String docId2Rev;
     String docId3Rev;
 
-    test("1. Create and Open Sporran", () {
+    test("1. Create and Open Sporran", () async {
       print("6.1");
-      final wrapper = expectAsync0(() {
-        expect(sporran6.dbName, databaseName);
-        expect(sporran6.lawnIsOpen, isTrue);
-      });
-
       initialiser.manualNotificationControl = false;
-      sporran6 = getSporran(initialiser);
-      initialiser.manualNotificationControl = true;
-
+      sporran6 = await getSporran(initialiser);
       sporran6.autoSync = false;
-      sporran6.onReady.first.then((e) => wrapper());
+      initialiser.manualNotificationControl = true;
+      expect(sporran6.dbName, databaseName);
+      expect(sporran6.lawnIsOpen, isTrue);
     });
 
     test("2. Wilt - Bulk Insert Supplied Keys", () {
@@ -1187,90 +1106,66 @@ void main() async {
       print("6.4");
       final wrapper = expectAsync0(() {});
 
-      pause = new Timer(new Duration(seconds: 3), wrapper);
+      new Timer(new Duration(seconds: 3), wrapper);
     });
 
     /* Go offline and get our created documents, from local storage */
-    test("4. Get Document Offline MyBulkId1", () {
+    test("4. Get Document Offline MyBulkId1", () async {
       print("6.4");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.getc);
-        expect(res.localResponse, isTrue);
-        expect(res.id, "MyBulkId1");
-        expect(res.payload.title, "Document 1");
-        expect(res.payload.version, 1);
-        expect(res.payload.attribute, "Doc 1 attribute");
-      });
-
       sporran6.online = false;
-      sporran6.get("MyBulkId1")
-        ..then((res) {
-          wrapper(res);
-        });
+      SporranQuery res = await sporran6.get("MyBulkId1");
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.getc);
+      expect(res.localResponse, isTrue);
+      expect(res.id, "MyBulkId1");
+      expect(res.payload.title, "Document 1");
+      expect(res.payload.version, 1);
+      expect(res.payload.attribute, "Doc 1 attribute");
     });
 
-    test("5. Get Document Offline MyBulkId2", () {
+    test("5. Get Document Offline MyBulkId2", () async { 
       print("6.5");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.getc);
-        expect(res.localResponse, isTrue);
-        expect(res.id, "MyBulkId2");
-        expect(res.payload.title, "Document 2");
-        expect(res.payload.version, 2);
-        expect(res.payload.attribute, "Doc 2 attribute");
-      });
-
-      sporran6.get("MyBulkId2")
-        ..then((res) {
-          wrapper(res);
-        });
+      sporran6.online = false;
+      SporranQuery res = await sporran6.get("MyBulkId2");
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.getc);
+      expect(res.localResponse, isTrue);
+      expect(res.id, "MyBulkId2");
+      expect(res.payload.title, "Document 2");
+      expect(res.payload.version, 2);
+      expect(res.payload.attribute, "Doc 2 attribute");
     });
 
-    test("6. Get Document Offline MyBulkId3", () {
+    test("6. Get Document Offline MyBulkId3", () async {
       print("6.6");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.getc);
-        expect(res.localResponse, isTrue);
-        expect(res.id, "MyBulkId3");
-        expect(res.payload.title, "Document 3");
-        expect(res.payload.version, 3);
-        expect(res.payload.attribute, "Doc 3 attribute");
-      });
-
-      sporran6.get("MyBulkId3")
-        ..then((res) {
-          wrapper(res);
-        });
+      SporranQuery res = await sporran6.get("MyBulkId3");
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.getc);
+      expect(res.localResponse, isTrue);
+      expect(res.id, "MyBulkId3");
+      expect(res.payload.title, "Document 3");
+      expect(res.payload.version, 3);
+      expect(res.payload.attribute, "Doc 3 attribute");
     });
 
-    test("7. Wilt - Delete Document MyBulkId1", () {
+    test("7. Wilt - Delete Document MyBulkId1", () async {
       print("6.7");
-      final wrapper = expectAsync1((res) {
-        try {
-          expect(res.error, isFalse);
-        } catch (e) {
-          logMessage("WILT::Delete Document MyBulkId1");
-          final dynamic errorResponse = res.jsonCouchResponse;
-          final String errorText = errorResponse.error;
-          logMessage("WILT::Error is $errorText");
-          final String reasonText = errorResponse.reason;
-          logMessage("WILT::Reason is $reasonText");
-          final int statusCode = res.errorCode;
-          logMessage("WILT::Status code is $statusCode");
-          return;
-        }
-
+      try {
+        final dynamic res = await wilting.deleteDocument("MyBulkId1", docId1Rev);
+        expect(res.error, isFalse);
         final dynamic successResponse = res.jsonCouchResponse;
         expect(successResponse.id, "MyBulkId1");
-      });
-
-      wilting.deleteDocument("MyBulkId1", docId1Rev)
-        ..then((res) {
-          wrapper(res);
-        });
+      } catch (e) {
+        print(e.toString());
+        logMessage("WILT::Delete Document MyBulkId1");
+        // final dynamic errorResponse = res.jsonCouchResponse;
+        // final String errorText = errorResponse.error;
+        // logMessage("WILT::Error is $errorText");
+        // final String reasonText = errorResponse.reason;
+        // logMessage("WILT::Reason is $reasonText");
+        // final int statusCode = res.errorCode;
+        // logMessage("WILT::Status code is $statusCode");
+      }
     });
 
     test("8. Wilt - Delete Document MyBulkId2", () {
@@ -1332,7 +1227,7 @@ void main() async {
       print("6.10");
       final wrapper = expectAsync0(() {});
 
-      pause = new Timer(new Duration(seconds: 3), wrapper);
+      new Timer(new Duration(seconds: 3), wrapper);
     });
 
     /* Go offline and get our created documents, from local storage */
@@ -1383,7 +1278,7 @@ void main() async {
       print("6.14");
       final wrapper = expectAsync0(() {});
 
-      pause = new Timer(new Duration(seconds: 3), wrapper);
+      new Timer(new Duration(seconds: 3), wrapper);
     });
   }, skip: true);
 
@@ -1391,19 +1286,6 @@ void main() async {
   group("7. Change notification Tests Attachments - ", () {
     Sporran sporran7;
 
-    /* We use Wilt here to change the CouchDb database independently
-     * of Sporran, these change will be picked up in change notifications.
-     */
-
-    /* Create our Wilt */
-    final Wilt wilting = new WiltBrowserClient(hostName, port, scheme);
-
-    /* Login if we are using authentication */
-    if (userName != null) {
-      wilting.login(userName, userPassword);
-    }
-
-    wilting.db = databaseName;
     String docId1Rev;
     final String attachmentPayload =
         'iVBORw0KGgoAAAANSUhEUgAAABwAAAASCAMAAAB/2U7WAAAABl' +
@@ -1411,45 +1293,23 @@ void main() async {
             'EX4IJTRkb7lobNUStXsB0jIXIAMSsQnWlsV+wULF4Avk9fLq2r' +
             '8a5HSE35Q3eO2XP1A1wQkZSgETvDtKdQAAAABJRU5ErkJggg==';
 
-    test("1. Create and Open Sporran", () {
+    test("1. Create and Open Sporran", () async {
+      await wilting.deleteDatabase(databaseName);
+      wilting.db = databaseName;
       print("7.1");
-      final wrapper = expectAsync0(() {
-        expect(sporran7.dbName, databaseName);
-        expect(sporran7.lawnIsOpen, isTrue);
-      });
-
       initialiser.manualNotificationControl = false;
-      sporran7 = getSporran(initialiser);
-      initialiser.manualNotificationControl = true;
 
+      sporran7 = await getSporran(initialiser);
       sporran7.autoSync = false;
-      sporran7.onReady.first.then((e) => wrapper());
+      initialiser.manualNotificationControl = true;
+      
+      expect(sporran7.dbName, databaseName);
+      expect(sporran7.lawnIsOpen, isTrue);
+      
     });
 
-    test("2. Wilt - Bulk Insert Supplied Keys", () {
+    test("2. Wilt - Bulk Insert Supplied Keys", () async {
       print("7.2");
-      final completer = expectAsync1((res) {
-        try {
-          expect(res.error, isFalse);
-        } catch (e) {
-          logMessage("WILT::Bulk Insert Supplied Keys");
-          final dynamic errorResponse = res.jsonCouchResponse;
-          final String errorText = errorResponse.error;
-          logMessage("WILT::Error is $errorText");
-          final String reasonText = errorResponse.reason;
-          logMessage("WILT::Reason is $reasonText");
-          final int statusCode = res.errorCode;
-          logMessage("WILT::Status code is $statusCode");
-          return;
-        }
-
-        final dynamic successResponse = res.jsonCouchResponse;
-        expect(successResponse[0].id, equals("MyBulkId1"));
-        expect(successResponse[1].id, equals("MyBulkId2"));
-        expect(successResponse[2].id, equals("MyBulkId3"));
-        docId1Rev = successResponse[0].rev;
-      });
-
       final dynamic document1 = new JsonObjectLite();
       document1.title = "Document 1";
       document1.version = 1;
@@ -1470,44 +1330,47 @@ void main() async {
       docList.add(doc2);
       docList.add(doc3);
       final String docs = WiltUserUtils.createBulkInsertString(docList);
-      wilting.bulkString(docs)
-        ..then((res) {
-          completer(res);
-        });
+      
+      final dynamic res = await wilting.bulkString(docs);
+
+      final dynamic successResponse = res.jsonCouchResponse;
+      expect(successResponse[0].id, equals("MyBulkId1"));
+      expect(successResponse[1].id, equals("MyBulkId2"));
+      expect(successResponse[2].id, equals("MyBulkId3"));
+      docId1Rev = successResponse[0].rev;
     });
 
     /* Pause a little for the notifications to come through */
     test("3. Notification Pause", () {
       print("7.3");
-      final wrapper = expectAsync0(() {});
-
-      pause = new Timer(new Duration(seconds: 3), wrapper);
-    });
-
-    test("4. Create Attachment Online MyBulkId1 Attachment 1", () {
-      print("7.4");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.putAttachmentc);
-        expect(res.id, "MyBulkId1");
-        expect(res.localResponse, isFalse);
-        expect(res.rev, anything);
-        docId1Rev = res.rev;
-        expect(res.payload.attachmentName, "AttachmentName1");
-        expect(res.payload.contentType, 'image/png');
-        expect(res.payload.payload, attachmentPayload);
+      final wrapper = expectAsync0(() {
+          
       });
 
+      new Timer(new Duration(seconds: 4), wrapper);
+    });
+
+    test("4. Create Attachment Online MyBulkId1 Attachment 1", () async {
+      print("7.4");
+      // sporran7 = await getSporran(initialiser);
       sporran7.online = true;
       final dynamic attachment = new JsonObjectLite();
       attachment.attachmentName = "AttachmentName1";
       attachment.rev = docId1Rev;
       attachment.contentType = 'image/png';
       attachment.payload = attachmentPayload;
-      sporran7.putAttachment("MyBulkId1", attachment)
-        ..then((res) {
-          wrapper(res);
-        });
+
+      final dynamic res = await sporran7.putAttachment("MyBulkId1", attachment);
+      print(res);
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.putAttachmentc);
+      expect(res.id, "MyBulkId1");
+      expect(res.localResponse, isFalse);
+      expect(res.rev, anything);
+      docId1Rev = res.rev;
+      expect(res.payload.attachmentName, "AttachmentName1");
+      expect(res.payload.contentType, 'image/png');
+      expect(res.payload.payload, attachmentPayload);
     });
 
     test("5. Create Attachment Online MyBulkId1 Attachment 2", () {
@@ -1541,58 +1404,42 @@ void main() async {
       print("7.6");
       final wrapper = expectAsync0(() {});
 
-      pause = new Timer(new Duration(seconds: 3), wrapper);
+      new Timer(new Duration(seconds: 3), wrapper);
     });
 
-    test("7. Delete Attachment Online MyBulkId1 Attachment 1", () {
+    test("7. Delete Attachment Online MyBulkId1 Attachment 1", () async {
       print("7.7");
-      final completer = expectAsync1((res) {
-        try {
-          expect(res.error, isFalse);
-        } catch (e) {
-          logMessage("WILT::Delete Attachment Failed");
-          final dynamic errorResponse = res.jsonCouchResponse;
-          final String errorText = errorResponse.error;
-          logMessage("WILT::Error is $errorText");
-          final String reasonText = errorResponse.reason;
-          logMessage("WILT::Reason is $reasonText");
-          final int statusCode = res.errorCode;
-          logMessage("WILT::Status code is $statusCode");
-          return;
-        }
-
-        final dynamic successResponse = res.jsonCouchResponse;
-        expect(successResponse.ok, isTrue);
-        docId1Rev = successResponse.rev;
-      });
-
-      wilting.db = databaseName;
-      wilting.deleteAttachment('MyBulkId1', 'AttachmentName1', docId1Rev)
-        ..then((res) {
-          completer(res);
-        });
+      var res = await wilting.deleteAttachment('MyBulkId1', 'AttachmentName1', docId1Rev);
+      if(res.error) {
+        logMessage("WILT::Delete Attachment Failed");
+        final dynamic errorResponse = res.jsonCouchResponse;
+        final String errorText = errorResponse.error;
+        logMessage("WILT::Error is $errorText");
+        final String reasonText = errorResponse.reason;
+        logMessage("WILT::Reason is $reasonText");
+        final int statusCode = res.errorCode;
+        logMessage("WILT::Status code is $statusCode");
+      }
+      expect(res.error, isFalse);
+      final dynamic successResponse = res.jsonCouchResponse;
+      expect(successResponse.ok, isTrue);
+      docId1Rev = successResponse.rev;
     });
 
     test("8. Notification Pause", () {
       print("7.8");
       final wrapper = expectAsync0(() {});
 
-      pause = new Timer(new Duration(seconds: 3), wrapper);
+      new Timer(new Duration(seconds: 5), wrapper);
     });
 
-    test("9. Get Attachment Offline MyBulkId1 AttachmentName1", () {
+    test("9. Get Attachment Offline MyBulkId1 AttachmentName1", () async {
       print("7.9");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isFalse);
-        expect(res.operation, Sporran.getAttachmentc);
-        expect(res.localResponse, isTrue);
-      });
-
       sporran7.online = false;
-      sporran7.getAttachment('MyBulkId1', 'AttachmentName1')
-        ..then((res) {
-          wrapper(res);
-        });
+      SporranQuery res = await sporran7.getAttachment('MyBulkId1', 'AttachmentName1');
+      expect(res.ok, isFalse);
+      expect(res.operation, Sporran.getAttachmentc);
+      expect(res.localResponse, isTrue);
     });
   }, skip: false);
 }

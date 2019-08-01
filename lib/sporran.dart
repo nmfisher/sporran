@@ -13,6 +13,7 @@ import 'dart:html';
 import 'package:sporran/src/Sporran.dart';
 import 'package:sporran/src/Event.dart' as eventWrapper;
 import 'package:sporran/src/SporranInitialiser.dart';
+import 'package:sporran/src/WiltBrowserClient2.dart';
 import 'package:wilt/wilt.dart';
 import 'package:wilt/wilt_browser_client.dart';
 
@@ -20,11 +21,11 @@ export 'src/Sporran.dart';
 export 'src/SporranException.dart';
 export 'src/SporranInitialiser.dart';
 
-Wilt _getWiltClient(String host, String port, String scheme) => WiltBrowserClient(host, port, scheme);
+Wilt _getWiltClient(String host, String port, String scheme) => WiltBrowserClient2(host, port, scheme);
 
 eventWrapper.Event _eventFactory(String type, String name) => new eventWrapper.Event.eventType(type, name);
 
-Sporran getSporran(SporranInitialiser initialiser) {
+Future<Sporran> getSporran(SporranInitialiser initialiser) async {
   final SynchronousStreamController<bool> _onlineStreamController = StreamController<bool>(sync: true);
   window.onOnline.listen((x) {
     _onlineStreamController.add(true);
@@ -34,5 +35,7 @@ Sporran getSporran(SporranInitialiser initialiser) {
     _onlineStreamController.add(false);
   });
   
-  return Sporran(initialiser, _onlineStreamController.stream, _getWiltClient, _eventFactory);
+  final Sporran sporran = Sporran(initialiser, _onlineStreamController.stream, _getWiltClient, _eventFactory);
+  await sporran.onReady.first;
+  return sporran;
 }

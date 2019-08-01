@@ -17,7 +17,7 @@ part of lawndart;
 abstract class _MapStore extends Store {
 
   _MapStore._();
-  
+
   Map<String, String> storage;
 
   @override
@@ -30,7 +30,8 @@ abstract class _MapStore extends Store {
 
   @override
   Stream<String> keys() async* {
-    for (var k in storage.keys) {
+    var keys = storage.keys.toList(); // copy keys to prevent concurrent modification exceptions
+    for (var k in keys) {
       yield k;
     }
   }
@@ -46,7 +47,6 @@ abstract class _MapStore extends Store {
     for (var key in objs.keys) {
       storage[key] = objs[key];
     }
-    return true;
   }
 
   @override
@@ -69,9 +69,9 @@ abstract class _MapStore extends Store {
 
   @override
   Stream<String> all() async* {
-    for (var v in storage.values) {
-      yield v;
-    }
+      for (var v in storage.values) {
+        yield v;
+      }
   }
 
   @override

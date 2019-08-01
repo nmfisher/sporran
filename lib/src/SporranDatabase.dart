@@ -23,6 +23,7 @@ import 'package:sporran/lawndart.dart';
 import 'package:sporran/src/Event.dart';
 import 'package:sporran/src/EventFactory.dart';
 import 'package:sporran/src/SporranException.dart';
+import 'package:sporran/src/SporranQuery.dart';
 import 'package:sporran/src/WiltClientFactory.dart';
 import 'package:wilt/wilt.dart';
 
@@ -34,7 +35,8 @@ class SporranDatabase {
 
   /// Construction, for Wilt we need URL and authentication parameters.
   /// For LawnDart only the database name, the store name is fixed by Sporran
-  SporranDatabase(this._dbName, this._host, this._lawndart, this._getWiltClient, this._eventFactory,
+  SporranDatabase(this._dbName, this._host, this._lawndart, this._getWiltClient,
+      this._eventFactory,
       [this._manualNotificationControl = false,
       this._port = "5984",
       this._scheme = "http://",
@@ -45,8 +47,7 @@ class SporranDatabase {
   }
 
   void _initialise() {
-    
-    if(_lawndart == null)
+    if (_lawndart == null)
       throw new SporranException(SporranException.noStoreEx);
 
     _lawnIsOpen = true;
@@ -158,7 +159,6 @@ class SporranDatabase {
           if (e.docId == keyList[0]) {
             /* ..potentially now deleted... */
             attachmentsToDelete.add(key);
-
             /* ...check against all the documents current attachments */
             attachments.forEach((attachment) {
               if ((keyList[1] == attachment.name) &&
@@ -172,10 +172,11 @@ class SporranDatabase {
         }
       }, onDone: () {
         /* We now have a list of attachments for this document that
-          * are not present in the document itself so remove them.
-          */
-        attachmentsToDelete.forEach((key) {
-          _lawndart.removeByKey(key).then((key) => removePendingDelete(key));
+        * are not present in the document itself so remove them.
+        */
+        attachmentsToDelete.forEach((key) async {
+          await _lawndart.removeByKey(key);
+          removePendingDelete(key);
         });
       });
 
@@ -184,7 +185,6 @@ class SporranDatabase {
     } else {
       /* Tidy up any pending deletes */
       removePendingDelete(e.docId);
-
       /* Do the delete */
       _lawndart.removeByKey(e.docId)
         ..then((_) {
@@ -206,15 +206,25 @@ class SporranDatabase {
   }
 
   /// Create and/or connect to CouchDb
-  void connectToCouch([bool transitionToOnline = false]) {
-    /// If the CouchDb database does not exist create it.
-    void createCompleter(dynamic res) {
-      if (!res.error) {
-        _wilt.db = _dbName;
-        _noCouchDb = false;
-      } else {
-        _noCouchDb = true;
+  void connectToCouch([bool transitionToOnline = false]) async {
+    try {
+      final dynamic res = await _wilt.getAllDbs();
+      
+      if(res.error)
+        throw Exception(res.responseText);
+
+      final JsonObjectLite successResponse = res.jsonCouchResponse;
+      final bool exists = successResponse.contains(_dbName);
+      /// If the CouchDb database does not exist create it.
+      if (exists == false) {
+        var created = await _wilt.createDatabase(_dbName);
+        if (created.error) {
+          throw Exception();
+        }
       }
+
+      _wilt.db = _dbName;
+      _noCouchDb = false;
 
       /**
        * Start change notifications
@@ -230,56 +240,17 @@ class SporranDatabase {
        * Signal we are ready
        */
       _signalReady();
-    }
-
-    void allCompleter(dynamic res) {
-      if (!res.error) {
-        final JsonObjectLite successResponse = res.jsonCouchResponse;
-        final bool created = successResponse.contains(_dbName);
-        if (created == false) {
-          _wilt.createDatabase(_dbName)
-            ..then((res) {
-              createCompleter(res);
-            });
-        } else {
-          _wilt.db = _dbName;
-          _noCouchDb = false;
-
-          /**
-           * Start change notifications
-           */
-          if (!manualNotificationControl) startChangeNotifications();
-
-          /**
-           * If this is a transition to online start syncing
-           */
-          if (transitionToOnline) sync();
-
-          /**
-          * Signal we are ready
-          */
-          _signalReady();
-        }
-      } else {
-        _noCouchDb = true;
-        _signalReady();
-      }
-    }
-
-    _wilt.getAllDbs()
-      ..then((res) {
-        allCompleter(res);
-      })
-      ..catchError((error) {
-        _noCouchDb = true;
-        _signalReady();
-      });
+    } catch(err) {
+      print("Connection error : $err");
+      _noCouchDb = true;
+      _signalReady();
+    } 
   }
 
   /// Add a key to the pending delete queue
   void addPendingDelete(String key, String document) {
     final JsonObjectLite deletedDocument =
-    new JsonObjectLite.fromJsonString(document);
+        new JsonObjectLite.fromJsonString(document);
     _pendingDeletes[key] = deletedDocument;
   }
 
@@ -338,8 +309,8 @@ class SporranDatabase {
   }
 
   /// Create local storage updated entry
-  JsonObjectLite _createUpdated(String key, String revision,
-      JsonObjectLite payload) {
+  JsonObjectLite _createUpdated(
+      String key, String revision, JsonObjectLite payload) {
     /* Add our type marker and set to 'not updated' */
     final dynamic update = new JsonObjectLite();
     update.status = updatedc;
@@ -350,8 +321,8 @@ class SporranDatabase {
   }
 
   /// Create local storage not updated entry
-  JsonObjectLite _createNotUpdated(String key, String revision,
-      JsonObjectLite payload) {
+  JsonObjectLite _createNotUpdated(
+      String key, String revision, JsonObjectLite payload) {
     /* Add our type marker and set to 'not updated' */
     final dynamic update = new JsonObjectLite();
     update.status = notUpdatedc;
@@ -363,8 +334,8 @@ class SporranDatabase {
 
   /// Update local storage.
   ///
-  Future updateLocalStorageObject(String key, JsonObjectLite update,
-      String revision, String updateStatus) {
+  Future updateLocalStorageObject(
+      String key, JsonObjectLite update, String revision, String updateStatus) {
     final completer = new Completer();
 
     /* Check for not initialized */
@@ -547,7 +518,7 @@ class SporranDatabase {
   Future<Map<String, String>> _manualBulkInsert(
       Map<String, JsonObjectLite> documentsToUpdate) {
     final Completer<Map<String, String>> completer =
-    new Completer<Map<String, String>>();
+        new Completer<Map<String, String>>();
     final Map<String, String> revisions = new Map<String, String>();
 
     final int length = documentsToUpdate.length;
@@ -582,7 +553,7 @@ class SporranDatabase {
       String docString = WiltUserUtils.addDocumentId(document.payload, key);
       if (document.rev != null) {
         final JsonObjectLite temp =
-        new JsonObjectLite.fromJsonString(docString);
+            new JsonObjectLite.fromJsonString(docString);
         docString = WiltUserUtils.addDocumentRev(temp, document.rev);
       }
 
@@ -610,7 +581,7 @@ class SporranDatabase {
       if ((keyList.length == 3) && (keyList[2] == attachmentMarkerc)) {
         if (id == keyList[0]) {
           final JsonObjectLite attachment =
-          new JsonObjectLite.fromJsonString(document);
+              new JsonObjectLite.fromJsonString(document);
           updateLocalStorageObject(id, attachment, revision, updatedc);
         }
       }
@@ -694,7 +665,8 @@ class SporranDatabase {
       attachmentToCreate.rev = WiltUserUtils.getDocumentRev(document);
       attachmentToCreate.contentType = attachment.data.content_type;
       // TODO - do we need to handle non-UTF8 strings?
-      attachmentToCreate.payload = base64Encode(utf8.encode(attachment.data.data));
+      attachmentToCreate.payload =
+          base64Encode(utf8.encode(attachment.data.data));
 
       updateLocalStorageObject(
           attachmentKey, attachmentToCreate, attachmentToCreate.rev, updatedc);

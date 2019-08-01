@@ -42,6 +42,8 @@ library lawndart;
 
 import 'dart:async';
 
+import 'package:synchronized/synchronized.dart';
+
 part 'src/lawndart/src/_map_store.dart';
 
 part 'src/lawndart/src/memory_store.dart';

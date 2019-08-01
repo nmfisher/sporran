@@ -23,4 +23,8 @@ Wilt _getWiltClient(String host, String port, String scheme) => WiltServerClient
 
 eventWrapper.Event _eventFactory(String type, String name) => new eventWrapper.Event.eventType(type, name);
 
-Sporran getSporran(SporranInitialiser initialiser, Stream<bool> connectivity) => Sporran(initialiser, connectivity, _getWiltClient, _eventFactory);
+Future<Sporran> getSporran(SporranInitialiser initialiser, Stream<bool> connectivity) async { 
+  var sporran = Sporran(initialiser, connectivity, _getWiltClient, _eventFactory);
+  await sporran.onReady.first;
+  return sporran;
+}
