@@ -563,7 +563,7 @@ class Sporran {
     res.ok = true;
     res.payload = documents;
     res.totalRows = documents.length;
-    res.keyList = documents.keys.toList();
+    res.keyList = documents.keys.toList().cast<String>();
     return res;
   }
   /// Get all documents.

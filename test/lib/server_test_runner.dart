@@ -10,10 +10,10 @@ import 'package:sporran/src/SporranInitialiser.dart';
 import 'package:sporran/src/wilt/WiltServerClient2.dart';
 import 'package:sporran/sporran_io.dart';
 import 'package:wilt/wilt.dart';
-import 'sporran_scenario1_test.dart';
-import 'sporran_scenario2_test.dart';
-import 'sporran_scenario3_test.dart';
-import 'sporran_test.dart';
+import 'package:sporran/src/tests/sporran_scenario1_test.dart';
+import 'package:sporran/src/tests/sporran_scenario2_test.dart';
+import 'package:sporran/src/tests/sporran_scenario3_test.dart';
+import 'package:sporran/src/tests/sporran_test.dart';
 import 'sporran_test_config.dart';
 
 void main() async { 

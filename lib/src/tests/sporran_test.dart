@@ -15,7 +15,6 @@ import 'package:sporran/src/SporranInitialiser.dart';
 import 'package:sporran/src/SporranQuery.dart';
 import 'package:wilt/wilt.dart';
 import 'package:test/test.dart';
-import 'sporran_test_config.dart';
 
 typedef SporranFactory = Future<Sporran> Function(SporranInitialiser initialiser);
 
@@ -34,7 +33,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       sporran = await getSporran(initialiser);
       sporran.autoSync = false;
       expect(sporran, isNotNull);
-      expect(sporran.dbName, databaseName);
+      expect(sporran.dbName, initialiser.dbName);
       expect(sporran.online, true);
     });
 
@@ -42,7 +41,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       print("2.2");
       Sporran sporran22 = await getSporran(initialiser);
       expect(sporran22, isNotNull);
-      expect(sporran22.dbName, databaseName);
+      expect(sporran22.dbName, initialiser.dbName);
     });
 
     // Wilt has a bug whereby HttpRequest errors (like authentication failures) aren't cleanly caught.
@@ -50,13 +49,14 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
     // To run successfully, this test requires a patch to Wilt that hasn't been submitted yet - so don't worry if the test fails for now :)
     test("3. Construction Invalid Authentication ", () async {
       print("2.3");
+      var password = initialiser.password;
       initialiser.password = 'none';
       Sporran sporran23 = await getSporran(initialiser);
       
       // reset the initialiser password so later tests can properly connect
-      initialiser.password = userPassword;
+      initialiser.password = password;
       expect(sporran23, isNotNull);
-      expect(sporran23.dbName, databaseName);
+      expect(sporran23.dbName, initialiser.dbName);
     });
 
     test("4. Put No Doc Id ", () async {
@@ -272,12 +272,12 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
 
     test("1. Create and Open Sporran", () async {
       print("3.1");
-      await wilt.deleteDatabase(databaseName);
-      wilt.db = databaseName;
+      await wilt.deleteDatabase(initialiser.dbName);
+      wilt.db = initialiser.dbName;
       sporran3 = await getSporran(initialiser);
       sporran3.online = true;
       sporran3.autoSync = false;
-      expect(sporran3.dbName, databaseName);
+      expect(sporran3.dbName, initialiser.dbName);
       expect(sporran3.lawnIsOpen, isTrue);
     });
 
@@ -493,7 +493,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
     test("1. Create and Open Sporran", () async {
       print("4.1");
       sporran4 = await getSporran(initialiser);
-      expect(sporran4.dbName, databaseName);
+      expect(sporran4.dbName, initialiser.dbName);
       expect(sporran4.lawnIsOpen, isTrue);
       sporran4.autoSync = false;
     });
@@ -723,11 +723,11 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
 
     test("1. Create and Open Sporran", () async {
       print("5.1");
-      await wilt.deleteDatabase(databaseName);
-      wilt.db = databaseName;
+      await wilt.deleteDatabase(initialiser.dbName);
+      wilt.db = initialiser.dbName;
       sporran5 = await getSporran(initialiser);
       sporran5.autoSync = false;
-      expect(sporran5.dbName, databaseName);
+      expect(sporran5.dbName, initialiser.dbName);
       expect(sporran5.lawnIsOpen, isTrue);
     });
 
@@ -774,21 +774,8 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(doc3.attribute, "Doc 3 attribute");
     });
 
-    test("3. Bulk Insert Documents Offline", () {
+    test("3. Bulk Insert Documents Offline", () async {
       print("5.3");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.localResponse, isTrue);
-        expect(res.operation, Sporran.bulkCreatec);
-        expect(res.id, isNull);
-        expect(res.payload, isNotNull);
-        expect(res.rev, isNull);
-        final dynamic doc3 = res.payload['docid3offline'];
-        expect(doc3.title, "Document 3");
-        expect(doc3.version, 3);
-        expect(doc3.attribute, "Doc 3 attribute");
-      });
-
       final dynamic document1 = new JsonObjectLite();
       document1.title = "Document 1";
       document1.version = 1;
@@ -810,10 +797,18 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       docs['docid3offline'] = document3;
 
       sporran5.online = false;
-      sporran5.bulkCreate(docs)
-        ..then((res) {
-          wrapper(res);
-        });
+
+      final dynamic res = await sporran5.bulkCreate(docs);
+      expect(res.ok, isTrue);
+      expect(res.localResponse, isTrue);
+      expect(res.operation, Sporran.bulkCreatec);
+      expect(res.id, isNull);
+      expect(res.payload, isNotNull);
+      expect(res.rev, isNull);
+      final dynamic doc3 = res.payload['docid3offline'];
+      expect(doc3.title, "Document 3");
+      expect(doc3.version, 3);
+      expect(doc3.attribute, "Doc 3 attribute");
     });
 
     test("4. Get All Docs Online", () {
@@ -841,38 +836,30 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         });
     });
 
-    test("5. Get All Docs Offline", () {
+    test("5. Get All Docs Offline", () async {
       print("5.5");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.localResponse, isTrue);
-        expect(res.operation, Sporran.getAllDocsc);
-        expect(res.id, isNull);
-        expect(res.rev, isNull);
-        expect(res.payload, isNotNull);
-        expect(res.payload.length, 6);
-        expect(res.payload['docid1'].payload.title, "Document 1");
-        expect(res.payload['docid2'].payload.title, "Document 2");
-        expect(res.payload['docid3'].payload.title, "Document 3");
-        expect(res.payload['docid1offline'].payload.title, "Document 1");
-        expect(res.payload['docid2offline'].payload.title, "Document 2");
-        expect(res.payload['docid3offline'].payload.title, "Document 3");
-      });
-
       sporran5.online = false;
-      final List<String> keys = [
+      final dynamic res = await sporran5.getAllDocs(keys: [
         'docid1offline',
         'docid2offline',
         'docid3offline',
         'docid1',
         'docid2',
         'docid3'
-      ];
-
-      sporran5.getAllDocs(keys: keys)
-        ..then((res) {
-          wrapper(res);
-        });
+      ]);
+      expect(res.ok, isTrue);
+      expect(res.localResponse, isTrue);
+      expect(res.operation, Sporran.getAllDocsc);
+      expect(res.id, isNull);
+      expect(res.rev, isNull);
+      expect(res.payload, isNotNull);
+      expect(res.payload.length, 6);
+      expect(res.payload['docid1'].payload.title, "Document 1");
+      expect(res.payload['docid2'].payload.title, "Document 2");
+      expect(res.payload['docid3'].payload.title, "Document 3");
+      expect(res.payload['docid1offline'].payload.title, "Document 1");
+      expect(res.payload['docid2offline'].payload.title, "Document 2");
+      expect(res.payload['docid3offline'].payload.title, "Document 3");
     });
 
     test("6. Get Database Info Offline", () {
@@ -911,7 +898,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.rev, isNull);
       expect(res.payload, isNotNull);
       expect(res.payload.doc_count, 3);
-      expect(res.payload.db_name, databaseName);
+      expect(res.payload.db_name, initialiser.dbName);
     });
 
     test("8. Tidy Up All Docs Online", () {
@@ -944,13 +931,13 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
 
     test("1. Create and Open Sporran", () async {
       print("6.1");
-      await wilt.deleteDatabase(databaseName);
-      wilt.db = databaseName;
+      await wilt.deleteDatabase(initialiser.dbName);
+      wilt.db = initialiser.dbName;
       initialiser.manualNotificationControl = false;
       sporran6 = await getSporran(initialiser);
       sporran6.autoSync = false;
       initialiser.manualNotificationControl = true;
-      expect(sporran6.dbName, databaseName);
+      expect(sporran6.dbName, initialiser.dbName);
       expect(sporran6.lawnIsOpen, isTrue);
     });
 
@@ -1185,8 +1172,8 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
             '8a5HSE35Q3eO2XP1A1wQkZSgETvDtKdQAAAABJRU5ErkJggg==';
 
     test("1. Create and Open Sporran", () async {
-      await wilt.deleteDatabase(databaseName);
-      wilt.db = databaseName;
+      await wilt.deleteDatabase(initialiser.dbName);
+      wilt.db = initialiser.dbName;
       print("7.1");
       initialiser.manualNotificationControl = false;
 
@@ -1194,7 +1181,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       sporran7.autoSync = false;
       initialiser.manualNotificationControl = true;
       
-      expect(sporran7.dbName, databaseName);
+      expect(sporran7.dbName, initialiser.dbName);
       expect(sporran7.lawnIsOpen, isTrue);
       
     });

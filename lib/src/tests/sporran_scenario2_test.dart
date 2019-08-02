@@ -10,7 +10,6 @@ import 'package:sporran/src/Sporran.dart';
 import 'package:sporran/src/SporranInitialiser.dart';
 import 'package:test/test.dart';
 import 'sporran_test.dart';
-import 'sporran_test_config.dart';
 import 'package:wilt/wilt.dart';
 
 void runScenario2(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) async {
@@ -47,12 +46,12 @@ void runScenario2(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
 
     test("1. Create and Open Sporran", () async {
       print("9.1");
-      await wilt.deleteDatabase(databaseName);
-      wilt.db = databaseName;
+      await wilt.deleteDatabase(initialiser.dbName);
+      wilt.db = initialiser.dbName;
       initialiser.manualNotificationControl = false;
       sporran9 = await getSporran(initialiser);
       initialiser.manualNotificationControl = true;
-      expect(sporran9.dbName, databaseName);
+      expect(sporran9.dbName, initialiser.dbName);
       expect(sporran9.lawnIsOpen, isTrue);
     });
 

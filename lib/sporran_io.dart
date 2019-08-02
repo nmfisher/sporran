@@ -18,6 +18,12 @@ import 'package:wilt/wilt_server_client.dart';
 export 'src/Sporran.dart';
 export 'src/SporranException.dart';
 export 'src/SporranInitialiser.dart';
+// ideally these should be kept private to this library, but we export them for testing in Flutter projects
+export 'src/wilt/WiltServerClient2.dart'; 
+export 'src/tests/sporran_test.dart'; 
+export 'src/tests/sporran_scenario1_test.dart';
+export 'src/tests/sporran_scenario2_test.dart';
+export 'src/tests/sporran_scenario3_test.dart';
 
 Wilt _getWiltClient(String host, String port, String scheme) => WiltServerClient(host, port, scheme);
 

@@ -141,6 +141,7 @@ class SporranDatabase {
 
     /* Process the update or delete event */
     if (e.type == WiltChangeNotificationEvent.updatee) {
+
       updateLocalStorageObject(e.docId, e.document, e.docRevision, updatedc);
 
       /* Now update the attachments */
@@ -328,20 +329,9 @@ class SporranDatabase {
   }
 
   /// Get multiple objects from local storage
-  Future<Map> getLocalStorageObjects(List<String> keys) {
-    final Completer<Map> completer = new Completer<Map>();
-    final Map results = new Map<String, JsonObjectLite>();
-    int keyPos = 0;
-
-    lawndart.getByKeys(keys).listen((String value) {
-      final JsonObjectLite document = new JsonObjectLite.fromJsonString(value);
-      results[keys[keyPos]] = document;
-      keyPos++;
-    }, onDone: () {
-      completer.complete(results);
-    });
-
-    return completer.future;
+  Future<Map> getLocalStorageObjects(List<String> keys) async {
+    var values = await lawndart.getByKeys(keys).map((x) => JsonObjectLite.fromJsonString(x)).toList();
+    return Map.fromIterables(keys, values);
   }
 
   /// Delete a CouchDb document.
