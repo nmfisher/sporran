@@ -20,11 +20,9 @@ import 'dart:convert';
 
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:sporran/lawndart.dart';
-import 'package:sporran/src/Document.dart';
 import 'package:sporran/src/Event.dart';
 import 'package:sporran/src/EventFactory.dart';
 import 'package:sporran/src/SporranException.dart';
-import 'package:sporran/src/SporranQuery.dart';
 import 'package:sporran/src/WiltClientFactory.dart';
 import 'package:wilt/wilt.dart';
 
