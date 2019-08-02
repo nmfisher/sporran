@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:sporran/lawndart.dart';
 import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
+import 'package:sporran/src/WiltBrowserClient2.dart';
 import 'package:test/test.dart';
 import 'sporran_test_config.dart';
 import 'package:wilt/wilt.dart';
@@ -29,7 +30,17 @@ void main() async {
   initialiser.preserveLocal = false;
   initialiser.store = await MemoryStore.open();
   Timer pause;
-  print(pause);
+
+  /* Create a Wilt instance for when we want to interface with CouchDb directly 
+  * (e.g. dropping the database or updating directly to test that change notifications are correctly picked up).
+  */
+
+  final Wilt wilting = new WiltBrowserClient2(hostName, port, scheme);
+
+  /* Login if we are using authentication */
+  if (userName != null) {
+    wilting.login(userName, userPassword);
+  }
 
   /* Group 8 - Sporran Scenario test 1 */
   /**
@@ -53,17 +64,16 @@ void main() async {
             'EX4IJTRkb7lobNUStXsB0jIXIAMSsQnWlsV+wULF4Avk9fLq2r' +
             '8a5HSE35Q3eO2XP1A1wQkZSgETvDtKdQAAAABJRU5ErkJggg==';
 
-    test("1. Create and Open Sporran", () {
+    test("1. Create and Open Sporran", () async {
       print("8.1");
-      final wrapper = expectAsync0(() {
-        expect(sporran8.dbName, databaseName);
-        expect(sporran8.lawnIsOpen, isTrue);
-        sporran8.online = false;
-      });
+      await wilting.deleteDatabase(databaseName);
+      wilting.db = databaseName;
 
-      sporran8 = getSporran(initialiser);
+      sporran8 = await getSporran(initialiser);
       sporran8.sync();
-      sporran8.onReady.first.then((e) => wrapper());
+      expect(sporran8.dbName, databaseName);
+      expect(sporran8.lawnIsOpen, isTrue);
+      sporran8.online = false;
     });
 
     test("2. Bulk Insert Documents Offline", () {
@@ -209,42 +219,37 @@ void main() async {
       print("8.8");
       final wrapper = expectAsync0(() {});
 
-      pause = new Timer(new Duration(seconds: 6), wrapper);
+      pause = new Timer(new Duration(seconds: 10), wrapper);
     });
 
-    test("9. Check - Get All Docs Online", () {
+    test("9. Check - Get All Docs Online", () async {
       print("8.9");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.localResponse, isFalse);
-        expect(res.operation, Sporran.getAllDocsc);
-        expect(res.id, isNull);
-        expect(res.rev, isNull);
-        expect(res.payload, isNotNull);
-        final dynamic successResponse = res.payload;
-        expect(successResponse.total_rows, equals(2));
-        expect(successResponse.rows[0].id, equals('8docid1'));
-        docid1rev = WiltUserUtils.getDocumentRev(successResponse.rows[0].doc);
-        expect(successResponse.rows[1].id, equals('8docid2'));
-        docid2rev = WiltUserUtils.getDocumentRev(successResponse.rows[1].doc);
-        expect(successResponse.rows[0].doc.title, "Document 1");
-        expect(successResponse.rows[0].doc.version, 1);
-        expect(successResponse.rows[0].doc.attribute, "Doc 1 attribute");
-        final List doc1Attachments =
-        WiltUserUtils.getAttachments(successResponse.rows[0].doc);
-        expect(doc1Attachments.length, 2);
-        expect(successResponse.rows[1].doc.title, "Document 2");
-        expect(successResponse.rows[1].doc.version, 2);
-        expect(successResponse.rows[1].doc.attribute, "Doc 2 attribute");
-        final List doc2Attachments =
-        WiltUserUtils.getAttachments(successResponse.rows[1].doc);
-        expect(doc2Attachments.length, 1);
-      });
-
-      sporran8.getAllDocs(includeDocs: true)
-        ..then((res) {
-          wrapper(res);
-        });
+      final dynamic res = await sporran8.getAllDocs(includeDocs: true);
+      print(res);
+      expect(res.ok, isTrue);
+      expect(res.localResponse, isFalse);
+      expect(res.operation, Sporran.getAllDocsc);
+      expect(res.id, isNull);
+      expect(res.rev, isNull);
+      expect(res.payload, isNotNull);
+      final dynamic successResponse = res.payload;
+      expect(successResponse.total_rows, equals(2));
+      expect(successResponse.rows[0].id, equals('8docid1'));
+      docid1rev = WiltUserUtils.getDocumentRev(successResponse.rows[0].doc);
+      expect(successResponse.rows[1].id, equals('8docid2'));
+      docid2rev = WiltUserUtils.getDocumentRev(successResponse.rows[1].doc);
+      expect(successResponse.rows[0].doc.title, "Document 1");
+      expect(successResponse.rows[0].doc.version, 1);
+      expect(successResponse.rows[0].doc.attribute, "Doc 1 attribute");
+      final List doc1Attachments =
+      WiltUserUtils.getAttachments(successResponse.rows[0].doc);
+      expect(doc1Attachments.length, 2);
+      expect(successResponse.rows[1].doc.title, "Document 2");
+      expect(successResponse.rows[1].doc.version, 2);
+      expect(successResponse.rows[1].doc.attribute, "Doc 2 attribute");
+      final List doc2Attachments =
+      WiltUserUtils.getAttachments(successResponse.rows[1].doc);
+      expect(doc2Attachments.length, 1);
     });
   });
 }

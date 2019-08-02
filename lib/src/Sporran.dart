@@ -18,6 +18,7 @@ import 'dart:convert';
 
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:sporran/lawndart.dart';
+import 'package:sporran/src/Document.dart';
 import 'package:sporran/src/EventFactory.dart';
 import 'package:sporran/src/SporranException.dart';
 import 'package:sporran/src/SporranInitialiser.dart';
@@ -170,21 +171,23 @@ class Sporran {
     final SporranQuery res = new SporranQuery();
     res.operation = putc;
     res.id = id;
+    res.payload = document;
 
     /* Update LawnDart */
     await _database.updateLocalStorageObject(id, document, rev, SporranDatabase.notUpdatedc);
+    print("#########");
+    print(document);
+    print("#########");
     /* If we are offline just return */
     if (!online) {
       res.localResponse = true;
       res.ok = true;
-      res.payload = document;
       res.rev = rev;
       return res;
     }
 
     final dynamic wiltResponse = await _database.wilt.putDocument(id, document, rev);
     res.localResponse = false;
-    res.payload = document;
     
     if(!wiltResponse.error) {
       res.rev = wiltResponse.jsonCouchResponse.rev;
@@ -212,11 +215,14 @@ class Sporran {
 
     /* Check for offline, if so try the get from local storage */
     if (!online) {
-      dynamic document = await _database.getLocalStorageObject(id);
+      final JsonObjectLite document = await _database.getLocalStorageObject(id);
+      
       res.localResponse = true;
-      res.ok = !(document.isEmpty);
-      res.payload = document.isEmpty ? null : document['payload']; 
-      res.rev = WiltUserUtils.getDocumentRev(document);
+      res.ok = document != null;
+      if(document != null) {
+        res.payload = document["payload"];
+        res.rev = WiltUserUtils.getDocumentRev(document);;
+      }
       return res;
     }
     
@@ -331,7 +337,6 @@ class Sporran {
       res.localResponse = true;
       res.ok = true;
       res.payload = attachment;
-      res.rev = null;
       return res;
     }
 
@@ -341,9 +346,10 @@ class Sporran {
     final dynamic wiltResponse = await attachmentHandler(id, attachment.attachmentName,
               attachment.rev, attachment.contentType, attachment.payload);
 
+    print("wiltResponse : $wiltResponse");
+
     res.ok = !(wiltResponse.error);
     res.localResponse = false;
-    res.rev = null;
 
     /* If success, mark the update as UPDATED in local storage */
     if (res.ok) {
@@ -544,11 +550,12 @@ class Sporran {
     if (keys == null) {
       /* Get all the keys from Lawndart */
       keyList = await _database.lawndart.keys().toList();
+
       /* Only return documents */
-      keyList = keys.where((key) {
+      keyList = keyList.where((key) {
         final List<String> split = key.split('-');
         return (split.length != 3 || split[2] != SporranDatabase.attachmentMarkerc);
-      });
+      }).toList();
     }
 
     final dynamic documents = await _database.getLocalStorageObjects(keyList);

@@ -9,13 +9,26 @@
 
 import 'dart:async';
 
+import 'package:sporran/lawndart.dart';
 import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
+import 'package:sporran/src/WiltBrowserClient2.dart';
 import 'package:test/test.dart';
 import 'sporran_test_config.dart';
 import 'package:wilt/wilt.dart';
 
-void main() {
+void main() async {
+     /* Common initialiser */
+    final SporranInitialiser initialiser = new SporranInitialiser();
+    initialiser.dbName = databaseName;
+    initialiser.hostname = hostName;
+    initialiser.manualNotificationControl = false;
+    initialiser.port = port;
+    initialiser.scheme = scheme;
+    initialiser.username = userName;
+    initialiser.password = userPassword;
+    initialiser.preserveLocal = false;
+    initialiser.store = await MemoryStore.open();
   /* Group 8 - Sporran Scenario test 2 */
   /**
    *  Start online
@@ -31,7 +44,7 @@ void main() {
    *  
    */
 
-  group("9. Scenario Tests 2 - ", () {
+  group("9. Scenario Tests 2 - ", ()  {
     Sporran sporran9;
     String docid1rev;
     String docid2rev;
@@ -42,28 +55,28 @@ void main() {
             'EX4IJTRkb7lobNUStXsB0jIXIAMSsQnWlsV+wULF4Avk9fLq2r' +
             '8a5HSE35Q3eO2XP1A1wQkZSgETvDtKdQAAAABJRU5ErkJggg==';
 
-    /* Common initialiser */
-    final SporranInitialiser initialiser = new SporranInitialiser();
-    initialiser.dbName = databaseName;
-    initialiser.hostname = hostName;
-    initialiser.manualNotificationControl = false;
-    initialiser.port = port;
-    initialiser.scheme = scheme;
-    initialiser.username = userName;
-    initialiser.password = userPassword;
-    initialiser.preserveLocal = false;
+ 
+
     Timer pause;
-    print(pause);
 
-    test("1. Create and Open Sporran", () {
+    /* Create a Wilt instance for when we want to interface with CouchDb directly 
+    * (e.g. dropping the database or updating directly to test that change notifications are correctly picked up).
+    */
+
+    final Wilt wilting = new WiltBrowserClient2(hostName, port, scheme);
+
+    /* Login if we are using authentication */
+    if (userName != null) {
+      wilting.login(userName, userPassword);
+    }
+
+    test("1. Create and Open Sporran", () async {
       print("9.1");
-      final wrapper = expectAsync0(() {
-        expect(sporran9.dbName, databaseName);
-        expect(sporran9.lawnIsOpen, isTrue);
-      });
-
-      sporran9 = getSporran(initialiser);
-      sporran9.onReady.first.then((e) => wrapper());
+      await wilting.deleteDatabase(databaseName);
+      wilting.db = databaseName;
+      sporran9 = await getSporran(initialiser);
+      expect(sporran9.dbName, databaseName);
+      expect(sporran9.lawnIsOpen, isTrue);
     });
 
     test("2. Bulk Insert Documents Online", () {

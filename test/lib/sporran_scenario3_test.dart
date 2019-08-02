@@ -4,24 +4,39 @@
  * Date   : 05/02/2014
  * Copyright :  S.Hamblett@OSCF
  */
+import 'package:sporran/lawndart.dart';
 @TestOn("browser")
 
 import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
+import 'package:sporran/src/SporranQuery.dart';
+import 'package:sporran/src/WiltBrowserClient2.dart';
 import 'package:test/test.dart';
+import 'package:wilt/wilt.dart';
 import 'sporran_test_config.dart';
 
-void main() {
-  /* Common initialiser */
-  final SporranInitialiser initialiser = new SporranInitialiser();
-  initialiser.dbName = databaseName;
-  initialiser.hostname = hostName;
-  initialiser.manualNotificationControl = false;
-  initialiser.port = port;
-  initialiser.scheme = scheme;
-  initialiser.username = userName;
-  initialiser.password = userPassword;
-  initialiser.preserveLocal = false;
+void main() async {
+    /* Common initialiser */
+    final SporranInitialiser initialiser = new SporranInitialiser();
+    initialiser.dbName = databaseName;
+    initialiser.hostname = hostName;
+    initialiser.manualNotificationControl = false;
+    initialiser.port = port;
+    initialiser.scheme = scheme;
+    initialiser.username = userName;
+    initialiser.password = userPassword;
+    initialiser.preserveLocal = false;
+    initialiser.store = await MemoryStore.open();
+
+    /* Create a Wilt instance for when we want to interface with CouchDb directly 
+    * (e.g. dropping the database or updating directly to test that change notifications are correctly picked up).
+    */
+    final Wilt wilting = new WiltBrowserClient2(hostName, port, scheme);
+
+    /* Login if we are using authentication */
+    if (userName != null) {
+      wilting.login(userName, userPassword);
+    }
 
   /* Group 9 - Sporran Scenario test 3 */
   /**
@@ -46,16 +61,17 @@ void main() {
             'EX4IJTRkb7lobNUStXsB0jIXIAMSsQnWlsV+wULF4Avk9fLq2r' +
             '8a5HSE35Q3eO2XP1A1wQkZSgETvDtKdQAAAABJRU5ErkJggg==';
 
-    test("1. Create and Open Sporran", () {
+    test("1. Create and Open Sporran", () async {
       print("9.1");
-      final wrapper = expectAsync0(() {
-        expect(sporran9.dbName, databaseName);
-        expect(sporran9.lawnIsOpen, isTrue);
-        sporran9.online = false;
-      });
 
-      sporran9 = getSporran(initialiser);
-      sporran9.onReady.first.then((e) => wrapper());
+      await wilting.deleteDatabase(databaseName);
+      wilting.db = databaseName;
+
+      sporran9 = await getSporran(initialiser);
+      expect(sporran9.dbName, databaseName);
+      expect(sporran9.lawnIsOpen, isTrue);
+      sporran9.online = false;
+
     });
 
     test("2. Bulk Insert Documents Offline", () {
@@ -192,75 +208,60 @@ void main() {
         });
     });
 
-    test("7. Check - Get All Docs Offline - Existing Sporran", () {
+    test("7. Check - Get All Docs Offline - Existing Sporran", () async {
       print("9.7");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.localResponse, isTrue);
-        expect(res.operation, Sporran.getAllDocsc);
-        expect(res.id, isNull);
-        expect(res.rev, isNull);
-        expect(res.payload, isNotNull);
-        expect(res.total_rows, equals(2));
-        final List keyList = res.keyList;
-        expect(keyList[0], '8docid1');
-        expect(keyList[1], '8docid2');
-        expect(res.payload[keyList[0]].key, equals('8docid1'));
-        expect(res.payload[keyList[0]].payload.title, "Document 1");
-        expect(res.payload[keyList[0]].payload.version, 1);
-        expect(res.payload[keyList[0]].payload.attribute, "Doc 1 attribute");
-        expect(res.payload[keyList[1]].key, equals('8docid2'));
-        expect(res.payload[keyList[1]].payload.title, "Document 2");
-        expect(res.payload[keyList[1]].payload.version, 2);
-        expect(res.payload[keyList[1]].payload.attribute, "Doc 2 attribute");
-        /* Kill this sporran */
-        sporran9 = null;
-      });
-      final List<String> keys = null;
-      sporran9.getAllDocs(includeDocs: true, keys: keys)
-        ..then((res) {
-          wrapper(res);
-        });
+      final SporranAllDocsQuery res = await sporran9.getAllDocs(includeDocs: true);
+      expect(res.ok, isTrue);
+      expect(res.localResponse, isTrue);
+      expect(res.operation, Sporran.getAllDocsc);
+      expect(res.id, isNull);
+      expect(res.rev, isNull);
+      expect(res.payload, isNotNull);
+      expect(res.totalRows, equals(2));
+      final List keyList = res.keyList;
+      expect(keyList[0], '8docid1');
+      expect(keyList[1], '8docid2');
+      expect(res.payload[keyList[0]].key, equals('8docid1'));
+      expect(res.payload[keyList[0]].payload.title, "Document 1");
+      expect(res.payload[keyList[0]].payload.version, 1);
+      expect(res.payload[keyList[0]].payload.attribute, "Doc 1 attribute");
+      expect(res.payload[keyList[1]].key, equals('8docid2'));
+      expect(res.payload[keyList[1]].payload.title, "Document 2");
+      expect(res.payload[keyList[1]].payload.version, 2);
+      expect(res.payload[keyList[1]].payload.attribute, "Doc 2 attribute");
     });
 
-    test("8. Check - Get All Docs Offline -  New Sporran", () {
+    test("8. Check - Get All Docs Offline -  New Sporran", () async {
       print("9.8");
-      final wrapper1 = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.localResponse, isTrue);
-        expect(res.operation, Sporran.getAllDocsc);
-        expect(res.id, isNull);
-        expect(res.rev, isNull);
-        expect(res.payload, isNotNull);
-        expect(res.total_rows, equals(2));
-        final List keyList = res.keyList;
-        expect(keyList[0], '8docid1');
-        expect(keyList[1], '8docid2');
-        expect(res.payload[keyList[0]].key, equals('8docid1'));
-        expect(res.payload[keyList[0]].payload.title, "Document 1");
-        expect(res.payload[keyList[0]].payload.version, 1);
-        expect(res.payload[keyList[0]].payload.attribute, "Doc 1 attribute");
-        expect(res.payload[keyList[1]].key, equals('8docid2'));
-        expect(res.payload[keyList[1]].payload.title, "Document 2");
-        expect(res.payload[keyList[1]].payload.version, 2);
-        expect(res.payload[keyList[1]].payload.attribute, "Doc 2 attribute");
-      });
-
-      final wrapper = expectAsync0(() {
-        expect(sporran10.dbName, databaseName);
-        expect(sporran10.lawnIsOpen, isTrue);
-        sporran10.online = false;
-
-        final List<String> keys = null;
-        sporran10.getAllDocs(includeDocs: true, keys: keys)
-          ..then((res) {
-            wrapper1(res);
-          });
-      });
-
       initialiser.preserveLocal = true;
-      sporran10 = getSporran(initialiser);
-      sporran10.onReady.first.then((e) => wrapper());
+      sporran10 = await getSporran(initialiser);
+
+      expect(sporran10.dbName, databaseName);
+      expect(sporran10.lawnIsOpen, isTrue);
+      sporran10.online = false;
+
+      final List<String> keys = null;
+      final SporranAllDocsQuery res = await sporran10.getAllDocs(includeDocs: true, keys: keys);
+
+      expect(res.ok, isTrue);
+      expect(res.localResponse, isTrue);
+      expect(res.operation, Sporran.getAllDocsc);
+      expect(res.id, isNull);
+      expect(res.rev, isNull);
+      expect(res.payload, isNotNull);
+      expect(res.totalRows, equals(2));
+      final List keyList = res.keyList;
+      expect(keyList[0], '8docid1');
+      expect(keyList[1], '8docid2');
+      expect(res.payload[keyList[0]].key, equals('8docid1'));
+      expect(res.payload[keyList[0]].payload.title, "Document 1");
+      expect(res.payload[keyList[0]].payload.version, 1);
+      expect(res.payload[keyList[0]].payload.attribute, "Doc 1 attribute");
+      expect(res.payload[keyList[1]].key, equals('8docid2'));
+      expect(res.payload[keyList[1]].payload.title, "Document 2");
+      expect(res.payload[keyList[1]].payload.version, 2);
+      expect(res.payload[keyList[1]].payload.attribute, "Doc 2 attribute");
+      
     });
   });
 }

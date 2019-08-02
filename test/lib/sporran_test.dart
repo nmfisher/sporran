@@ -15,7 +15,6 @@ import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:sporran/src/SporranQuery.dart';
 import 'package:sporran/src/WiltBrowserClient2.dart';
-import 'package:stack_trace/stack_trace.dart';
 import 'package:wilt/wilt.dart';
 import 'package:wilt/wilt_browser_client.dart';
 import 'package:test/test.dart';
@@ -338,7 +337,7 @@ void main() async {
 
     test("1. Create and Open Sporran", () async {
       print("3.1");
-      // await wilting.deleteDatabase(databaseName);
+      await wilting.deleteDatabase(databaseName);
       wilting.db = databaseName;
       sporran3 = await getSporran(initialiser);
       sporran3.online = true;
@@ -411,22 +410,15 @@ void main() async {
         });
     });
 
-    test("6. Get Document Offline docIdPutOnline", () {
+    test("6. Get Document Offline docIdPutOnline", () async {
       print("3.6");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.operation, Sporran.getc);
-        expect(res.localResponse, isTrue);
-        expect(res.id, docIdPutOnline);
-        final dynamic payload = new JsonObjectLite.fromJsonString(res.payload);
-        expect(payload.payload.name, "Online - Updated");
-      });
-
       sporran3.online = false;
-      sporran3.get(docIdPutOnline)
-        ..then((res) {
-          wrapper(res);
-        });
+      final dynamic res = await sporran3.get(docIdPutOnline);
+      expect(res.ok, isTrue);
+      expect(res.operation, Sporran.getc);
+      expect(res.localResponse, isTrue);
+      expect(res.id, docIdPutOnline);
+      expect(res.payload.name, "Online - Updated");
     });
 
     test("7. Get Document Offline docIdPutOffline", () {
@@ -436,8 +428,7 @@ void main() async {
         expect(res.operation, Sporran.getc);
         expect(res.localResponse, isTrue);
         expect(res.id, docIdPutOffline);
-        final dynamic payload = new JsonObjectLite.fromJsonString(res.payload);
-        expect(payload.payload.name, "Offline");
+        expect(res.payload.name, "Offline");
         expect(res.rev, isNull);
       });
 
@@ -692,11 +683,10 @@ void main() async {
         expect(res.id, docIdPutOffline);
         expect(res.localResponse, isTrue);
         expect(res.rev, isNull);
-        final dynamic p2 =
-        new JsonObjectLite.fromJsonString(res.payload.payload);
-        expect(p2.payload.attachmentName, "offlineAttachment");
-        expect(p2.payload.contentType, 'image/png');
-        expect(p2.payload.payload, attachmentPayload);
+        print(res.payload);
+        expect(res.payload.payload.attachmentName, "offlineAttachment");
+        expect(res.payload.payload.contentType, 'image/png');
+        expect(res.payload.payload.payload, attachmentPayload);
       });
 
       sporran4.online = false;
@@ -805,33 +795,17 @@ void main() async {
 
     test("1. Create and Open Sporran", () async {
       print("5.1");
+      await wilting.deleteDatabase(databaseName);
+      wilting.db = databaseName;
       sporran5 = await getSporran(initialiser);
       sporran5.autoSync = false;
       expect(sporran5.dbName, databaseName);
       expect(sporran5.lawnIsOpen, isTrue);
     });
 
-    test("2. Bulk Insert Documents Online", () {
+    test("2. Bulk Insert Documents Online", () async {
       print("5.2");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.localResponse, isFalse);
-        expect(res.operation, Sporran.bulkCreatec);
-        expect(res.id, isNull);
-        expect(res.payload, isNotNull);
-        expect(res.rev, isNotNull);
-        expect(res.rev[0].rev, anything);
-        docid1rev = res.rev[0].rev;
-        expect(res.rev[1].rev, anything);
-        docid2rev = res.rev[1].rev;
-        expect(res.rev[2].rev, anything);
-        docid3rev = res.rev[2].rev;
-        final dynamic doc3 = res.payload['docid3'];
-        expect(doc3.title, "Document 3");
-        expect(doc3.version, 3);
-        expect(doc3.attribute, "Doc 3 attribute");
-      });
-
+      
       final dynamic document1 = new JsonObjectLite();
       document1.title = "Document 1";
       document1.version = 1;
@@ -852,10 +826,24 @@ void main() async {
       docs['docid2'] = document2;
       docs['docid3'] = document3;
 
-      sporran5.bulkCreate(docs)
-        ..then((res) {
-          wrapper(res);
-        });
+      final dynamic res = await sporran5.bulkCreate(docs);
+      print(res);
+      expect(res.ok, isTrue);
+      expect(res.localResponse, isFalse);
+      expect(res.operation, Sporran.bulkCreatec);
+      expect(res.id, isNull);
+      expect(res.payload, isNotNull);
+      expect(res.rev, isNotNull);
+      expect(res.rev[0].rev, anything);
+      docid1rev = res.rev[0].rev;
+      expect(res.rev[1].rev, anything);
+      docid2rev = res.rev[1].rev;
+      expect(res.rev[2].rev, anything);
+      docid3rev = res.rev[2].rev;
+      final dynamic doc3 = res.payload['docid3'];
+      expect(doc3.title, "Document 3");
+      expect(doc3.version, 3);
+      expect(doc3.attribute, "Doc 3 attribute");
     });
 
     test("3. Bulk Insert Documents Offline", () {
@@ -1022,25 +1010,14 @@ void main() async {
   group("6. Change notification Tests Documents - ", () {
     Sporran sporran6;
 
-    /* We use Wilt here to change the CouchDb database independently
-     * of Sporran, these change will be picked up in change notifications.
-     */
-
-    /* Create our Wilt */
-    final Wilt wilting = new WiltBrowserClient(hostName, port, scheme);
-
-    /* Login if we are using authentication */
-    if (userName != null) {
-      wilting.login(userName, userPassword);
-    }
-
-    wilting.db = databaseName;
     String docId1Rev;
     String docId2Rev;
     String docId3Rev;
 
     test("1. Create and Open Sporran", () async {
       print("6.1");
+      await wilting.deleteDatabase(databaseName);
+      wilting.db = databaseName;
       initialiser.manualNotificationControl = false;
       sporran6 = await getSporran(initialiser);
       sporran6.autoSync = false;
@@ -1049,31 +1026,8 @@ void main() async {
       expect(sporran6.lawnIsOpen, isTrue);
     });
 
-    test("2. Wilt - Bulk Insert Supplied Keys", () {
+    test("2. Wilt - Bulk Insert Supplied Keys", () async {
       print("6.2");
-      final completer = expectAsync1((res) {
-        try {
-          expect(res.error, isFalse);
-        } catch (e) {
-          logMessage("WILT::Bulk Insert Supplied Keys");
-          final dynamic errorResponse = res.jsonCouchResponse;
-          final String errorText = errorResponse.error;
-          logMessage("WILT::Error is $errorText");
-          final String reasonText = errorResponse.reason;
-          logMessage("WILT::Reason is $reasonText");
-          final int statusCode = res.errorCode;
-          logMessage("WILT::Status code is $statusCode");
-          return;
-        }
-
-        final dynamic successResponse = res.jsonCouchResponse;
-        expect(successResponse[0].id, equals("MyBulkId1"));
-        expect(successResponse[1].id, equals("MyBulkId2"));
-        expect(successResponse[2].id, equals("MyBulkId3"));
-        docId1Rev = successResponse[0].rev;
-        docId2Rev = successResponse[1].rev;
-        docId3Rev = successResponse[2].rev;
-      });
 
       final dynamic document1 = new JsonObjectLite();
       document1.title = "Document 1";
@@ -1095,10 +1049,17 @@ void main() async {
       docList.add(doc2);
       docList.add(doc3);
       final String docs = WiltUserUtils.createBulkInsertString(docList);
-      wilting.bulkString(docs)
-        ..then((res) {
-          completer(res);
-        });
+      final dynamic res = await wilting.bulkString(docs);
+      
+      expect(res.error, isFalse);
+
+      final dynamic successResponse = res.jsonCouchResponse;
+      expect(successResponse[0].id, equals("MyBulkId1"));
+      expect(successResponse[1].id, equals("MyBulkId2"));
+      expect(successResponse[2].id, equals("MyBulkId3"));
+      docId1Rev = successResponse[0].rev;
+      docId2Rev = successResponse[1].rev;
+      docId3Rev = successResponse[2].rev;
     });
 
     /* Pause a little for the notifications to come through */
@@ -1114,13 +1075,15 @@ void main() async {
       print("6.4");
       sporran6.online = false;
       SporranQuery res = await sporran6.get("MyBulkId1");
+      print(res);
+      print(res.payload);
       expect(res.ok, isTrue);
       expect(res.operation, Sporran.getc);
       expect(res.localResponse, isTrue);
       expect(res.id, "MyBulkId1");
       expect(res.payload.title, "Document 1");
-      expect(res.payload.version, 1);
-      expect(res.payload.attribute, "Doc 1 attribute");
+      expect(res.payload["version"], 1);
+      expect(res.payload["attribute"], "Doc 1 attribute");
     });
 
     test("5. Get Document Offline MyBulkId2", () async { 
@@ -1280,7 +1243,7 @@ void main() async {
 
       new Timer(new Duration(seconds: 3), wrapper);
     });
-  }, skip: true);
+  }, skip: false);
 
   /* Group 7 - Sporran Change notification tests */
   group("7. Change notification Tests Attachments - ", () {

@@ -24,7 +24,7 @@ void main() async {
   initialiser.preserveLocal = false;
 
   // Create the client
-  final Sporran sporran = getSporran(initialiser);
+  final Sporran sporran = await getSporran(initialiser);
   sporran.autoSync = false;
   await sporran.onReady.first;
 
@@ -38,7 +38,6 @@ void main() async {
   sporran.get(docIdPutOnline)
     ..then((res) {
       final dynamic payload = new JsonObjectLite.fromJsonString(res.payload);
-      print(payload.payload.name);
     });
 
   /// Get it offline

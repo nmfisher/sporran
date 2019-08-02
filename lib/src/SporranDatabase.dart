@@ -20,6 +20,7 @@ import 'dart:convert';
 
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:sporran/lawndart.dart';
+import 'package:sporran/src/Document.dart';
 import 'package:sporran/src/Event.dart';
 import 'package:sporran/src/EventFactory.dart';
 import 'package:sporran/src/SporranException.dart';
@@ -283,100 +284,49 @@ class SporranDatabase {
     }
 
     /* Get and update all the attachments */
-    attachments.forEach((attachment) {
-      void completer(dynamic res) {
-        if (!res.error) {
-          final dynamic successResponse = res.jsonCouchResponse;
-          final dynamic newAttachment = new JsonObjectLite();
-          newAttachment.attachmentName = attachment.name;
-          newAttachment.rev = WiltUserUtils.getDocumentRev(document);
-          newAttachment.contentType = successResponse.contentType;
-          newAttachment.payload = res.responseText;
-          final String key =
-              "$id-${attachment.name}-${SporranDatabase.attachmentMarkerc}";
-          updateLocalStorageObject(
-              key, newAttachment, newAttachment.rev, SporranDatabase.updatedc);
-        }
-      }
-
+    attachments.forEach((attachment) async {
       /* Get the attachment */
       wilting.db = _dbName;
-      wilting.getAttachment(id, attachment.name)
-        ..then((res) {
-          completer(res);
-        });
+      final dynamic res = await wilting.getAttachment(id, attachment.name);
+      if (!res.error) {
+        final dynamic successResponse = res.jsonCouchResponse;
+        final dynamic newAttachment = new JsonObjectLite();
+        newAttachment.attachmentName = attachment.name;
+        newAttachment.rev = WiltUserUtils.getDocumentRev(document);
+        newAttachment.contentType = successResponse.contentType;
+        newAttachment.payload = res.responseText;
+        final String key =
+            "$id-${attachment.name}-${SporranDatabase.attachmentMarkerc}";
+        updateLocalStorageObject(
+            key, newAttachment, newAttachment.rev, SporranDatabase.updatedc);
+      }
     });
-  }
-
-  /// Create local storage updated entry
-  JsonObjectLite _createUpdated(
-      String key, String revision, JsonObjectLite payload) {
-    /* Add our type marker and set to 'not updated' */
-    final dynamic update = new JsonObjectLite();
-    update.status = updatedc;
-    update.key = key;
-    update.payload = payload;
-    update.rev = revision;
-    return update;
-  }
-
-  /// Create local storage not updated entry
-  JsonObjectLite _createNotUpdated(
-      String key, String revision, JsonObjectLite payload) {
-    /* Add our type marker and set to 'not updated' */
-    final dynamic update = new JsonObjectLite();
-    update.status = notUpdatedc;
-    update.key = key;
-    update.payload = payload;
-    update.rev = revision;
-    return update;
   }
 
   /// Update local storage.
   ///
   Future updateLocalStorageObject(
-      String key, JsonObjectLite update, String revision, String updateStatus) {
-    final completer = new Completer();
-
-    /* Check for not initialized */
+      String key, JsonObjectLite update, String revision, String updateStatus) async {
+     
+     /* Check for not initialized */
     if ((lawndart == null) || (!_lawnIsOpen)) {
-      return new Future.error(
-          new SporranException(SporranException.lawnNotInitEx));
+      throw new SporranException(SporranException.lawnNotInitEx);
     }
 
-    /* Do the update */
-    JsonObjectLite localUpdate = new JsonObjectLite();
-    if (updateStatus == notUpdatedc) {
-      localUpdate = _createNotUpdated(key, revision, update);
-    } else {
-      localUpdate = _createUpdated(key, revision, update);
-    }
-
-    /**
-     * Update LawnDart
-     */
-    _lawndart.save(localUpdate.toString(), key)
-      ..then((String key) {
-        completer.complete();
-      });
-
-    return completer.future;
+    final JsonObjectLite document = new JsonObjectLite();
+    document["key"] = key;
+    document["rev"] = revision;
+    document["status"] = updateStatus;
+    document["payload"] = update;
+    await _lawndart.save(document.toString(), key);
   }
 
   /// Get an object from local storage
-  Future<JsonObjectLite> getLocalStorageObject(String key) {
-    final dynamic localObject = new JsonObjectLite();
-    final Completer<JsonObjectLite> completer = new Completer<JsonObjectLite>();
-
-    lawndart.getByKey(key).then((String document) {
-      if (document != null) {
-        localObject.payload = document;
-      }
-
-      completer.complete(localObject);
-    });
-
-    return completer.future;
+  Future<JsonObjectLite> getLocalStorageObject(String key) async {
+    final String document = await lawndart.getByKey(key);
+    if(document == null)
+      return JsonObjectLite();
+    return JsonObjectLite.fromJsonString(document);
   }
 
   /// Get multiple objects from local storage
@@ -417,7 +367,7 @@ class SporranDatabase {
   ///
   /// If this fails we probably have a conflict in which case
   /// Couch wins.
-  void deleteAttachment(String key, String name, String revision) {
+  void deleteAttachment(String key, String name, String revision) async {
     /* Create our own Wilt instance */
     final Wilt wilting = _getWiltClient(_host, _port, _scheme);
 
@@ -427,12 +377,12 @@ class SporranDatabase {
     }
 
     wilting.db = _dbName;
-    wilting.deleteAttachment(key, name, revision);
+    await wilting.deleteAttachment(key, name, revision);
   }
 
   /// Update/create a CouchDb attachment
   void updateAttachment(String key, String name, String revision,
-      String contentType, String payload) {
+      String contentType, String payload) async {
     /* Create our own Wilt instance */
     final Wilt wilting = _getWiltClient(_host, _port, _scheme);
 
@@ -441,50 +391,41 @@ class SporranDatabase {
       wilting.login(_user, _password);
     }
 
-    void getCompleter(dynamic res) {
-      /**
-       * If the document doesn't already have an attachment
-       * with this name get the revision and add this one.
-       * We don't care about the outcome, if it errors there's
-       * nothing we can do.
-       */
-      if (!res.error) {
-        final JsonObjectLite successResponse = res.jsonCouchResponse;
-        final List attachments = WiltUserUtils.getAttachments(successResponse);
-        bool found = false;
-        attachments.forEach((dynamic attachment) {
-          if (attachment.name == name) found = true;
-        });
-
-        if (!found) {
-          final String newRevision =
-              WiltUserUtils.getDocumentRev(successResponse);
-          wilting.updateAttachment(
-              key, name, newRevision, contentType, payload);
-        }
-      }
-    }
-
-    void putCompleter(dynamic res) {
-      /**
-       * If we have a conflict, get the document to get its
-       * latest revision
-       */
-      if (res.error) {
-        if (res.errorCode == 409) {
-          wilting.getDocument(key)
-            ..then((res) {
-              getCompleter(res);
-            });
-        }
-      }
-    }
-
     wilting.db = _dbName;
-    wilting.updateAttachment(key, name, revision, contentType, payload)
-      ..then((res) {
-        putCompleter(res);
-      });
+
+    print("Updating attachment with key [ $key ], rev [ $revision ]");
+    
+    final dynamic res = await wilting.updateAttachment(key, name, revision, contentType, payload);
+    /**
+     * If we have a conflict, get the document to get its
+     * latest revision
+     */
+    if (res.error) {
+      if (res.errorCode == 409) {
+        final dynamic document = await wilting.getDocument(key);
+          /**
+           * If the document doesn't already have an attachment
+           * with this name get the revision and add this one.
+           * We don't care about the outcome, if it errors there's
+           * nothing we can do.
+           */
+          if (!document.error) {
+            final JsonObjectLite successResponse = document.jsonCouchResponse;
+            final List attachments = WiltUserUtils.getAttachments(successResponse);
+            bool found = false;
+            attachments.forEach((dynamic attachment) {
+              if (attachment.name == name) found = true;
+            });
+
+            if (!found) {
+              final String newRevision =
+                  WiltUserUtils.getDocumentRev(successResponse);
+              wilting.updateAttachment(
+                  key, name, newRevision, contentType, payload);
+            }
+          }
+        }
+      }
   }
 
   /// Update/create a CouchDb document
@@ -625,22 +566,24 @@ class SporranDatabase {
       final JsonObjectLite doc = new JsonObjectLite.fromJsonString(document);
       final String key = doc['key'];
       if (doc['status'] == notUpdatedc) {
-        final JsonObjectLite update = doc;
         /* If an attachment just stack it */
         final List keyList = key.split('-');
         if ((keyList.length == 3) && (keyList[2] == attachmentMarkerc)) {
-          attachmentsToUpdate[key] = update;
+          attachmentsToUpdate[key] = doc;
         } else {
-          documentsToUpdate[key] = update;
+          documentsToUpdate[key] = doc;
         }
       }
     }, onDone: () {
       _manualBulkInsert(documentsToUpdate)
         ..then((revisions) {
+          print("Handling updated revisions : $revisions");
           /* Finally do the attachments */
           attachmentsToUpdate.forEach((key, dynamic attachment) {
             final List keyList = key.split('-');
-            if (attachment.rev == null) attachment.rev = revisions[keyList[0]];
+            print("Revision: ${revisions[keyList[0]]}");
+            attachment["rev"] = revisions[keyList[0]];
+            print("Inserting attachment $attachment");
             updateAttachment(
                 keyList[0],
                 attachment.payload.attachmentName,
