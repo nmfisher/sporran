@@ -174,9 +174,7 @@ class Sporran {
 
     /* Update LawnDart */
     await _database.updateLocalStorageObject(id, document, rev, SporranDatabase.notUpdatedc);
-    print("#########");
-    print(document);
-    print("#########");
+
     /* If we are offline just return */
     if (!online) {
       res.localResponse = true;
@@ -215,10 +213,10 @@ class Sporran {
     /* Check for offline, if so try the get from local storage */
     if (!online) {
       final JsonObjectLite document = await _database.getLocalStorageObject(id);
-      
+      print(document);
       res.localResponse = true;
-      res.ok = document != null;
-      if(document != null) {
+      res.ok = !document.isEmpty;
+      if(res.ok) {
         res.payload = document["payload"];
         res.rev = WiltUserUtils.getDocumentRev(document);;
       }
@@ -229,6 +227,7 @@ class Sporran {
     final dynamic wiltResponse = await _database.wilt.getDocument(id, rev, true);
     
     res.localResponse = false;
+    print(wiltResponse);
     res.ok = !wiltResponse.error;
     res.payload = res.ok ? wiltResponse.jsonCouchResponse : null;
     res.rev = res.ok ? WiltUserUtils.getDocumentRev(wiltResponse.jsonCouchResponse) : null;

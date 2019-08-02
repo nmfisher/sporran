@@ -107,5 +107,9 @@ The futures interface passes the completion result as a parameter.
 
 The properties of the result interface are decribed in the Result Interface document.
 
+5. COPY 
+---------------------
+This has not yet been tested, so I have no idea if the implementation works.
+
 
   

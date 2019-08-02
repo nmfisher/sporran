@@ -36,7 +36,7 @@ class WiltResponse {
     }
   }
 
-  WiltResponse.fromError(this.responseText, this.errorCode, this.method, this.allResponseHeaders) {
+  WiltResponse.fromError(this.responseText, this.errorText, this.errorCode, this.method, this.allResponseHeaders) {
     error = true;
     if ((errorCode != 0) && (method != Wilt.headd)) {
       jsonCouchResponse = JsonObjectLite.fromJsonString(responseText);

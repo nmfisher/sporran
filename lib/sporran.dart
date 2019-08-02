@@ -13,7 +13,7 @@ import 'dart:html';
 import 'package:sporran/src/Sporran.dart';
 import 'package:sporran/src/Event.dart' as eventWrapper;
 import 'package:sporran/src/SporranInitialiser.dart';
-import 'package:sporran/src/WiltBrowserClient2.dart';
+import 'package:sporran/src/wilt/WiltBrowserClient2.dart';
 import 'package:wilt/wilt.dart';
 import 'package:wilt/wilt_browser_client.dart';
 

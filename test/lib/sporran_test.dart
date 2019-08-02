@@ -4,79 +4,26 @@
  * Date   : 05/02/2014
  * Copyright :  S.Hamblett@OSCF
  */
-@TestOn("browser")
 
 import 'dart:async';
-import 'dart:convert';
-import 'dart:html';
 
 import 'package:sporran/lawndart.dart';
-import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
+import 'package:sporran/src/Sporran.dart';
+import 'package:sporran/src/SporranException.dart';
+import 'package:sporran/src/SporranInitialiser.dart';
 import 'package:sporran/src/SporranQuery.dart';
-import 'package:sporran/src/WiltBrowserClient2.dart';
 import 'package:wilt/wilt.dart';
-import 'package:wilt/wilt_browser_client.dart';
 import 'package:test/test.dart';
 import 'sporran_test_config.dart';
 
+typedef SporranFactory = Future<Sporran> Function(SporranInitialiser initialiser);
+
 void logMessage(String message) {
-  window.console.log(message);
   print("CONSOLE : $message");
 }
 
-
-void main() async {
-
-  /* Common initialiser */
-  final SporranInitialiser initialiser = new SporranInitialiser();
-  initialiser.store = await MemoryStore.open();
-  initialiser.dbName = databaseName;
-  initialiser.hostname = hostName;
-  initialiser.manualNotificationControl = true;
-  initialiser.port = port;
-  initialiser.scheme = scheme;
-  initialiser.username = userName;
-  initialiser.password = userPassword;
-  initialiser.preserveLocal = false;
-  
-  /* Create a Wilt instance for when we want to interface with CouchDb directly 
-  * (e.g. dropping the database or updating directly to test that change notifications are correctly picked up).
-  */
-
-  final Wilt wilting = new WiltBrowserClient2(hostName, port, scheme);
-
-  /* Login if we are using authentication */
-  if (userName != null) {
-    wilting.login(userName, userPassword);
-  }
-
-
-  /* Group 1 - Environment tests */
-  group("1. Environment Tests - ", () {
-    print("1.1");
-    String status = "online";
-
-    test("Online/Offline", () {
-      window.onOffline.first.then((e) {
-        expect(status, "offline");
-        /* Because we aren't really offline */
-        expect(window.navigator.onLine, isTrue);
-      });
-
-      window.onOnline.first.then((e) {
-        expect(status, "online");
-        expect(window.navigator.onLine, isTrue);
-      });
-
-      status = "offline";
-      var e = new Event.eventType('Event', 'offline');
-      window.dispatchEvent(e);
-      status = "online";
-      e = new Event.eventType('Event', 'online');
-      window.dispatchEvent(e);
-    });
-  }, skip: false);
+void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) async {
 
   /* Group 2 - Sporran constructor/ invalid parameter tests */
   group("2. Constructor/Invalid Parameter Tests - ", ()  {
@@ -89,18 +36,6 @@ void main() async {
       expect(sporran, isNotNull);
       expect(sporran.dbName, databaseName);
       expect(sporran.online, true);
-    });
-
-    test("1. Construction Online/Offline listener ", () async {
-      print("2.1");
-      var sporran21 = await getSporran(initialiser);
-      final Event offline = new Event.eventType('Event', 'offline');
-      window.dispatchEvent(offline);
-      expect(sporran21.online, isFalse);
-      final Event online = new Event.eventType('Event', 'online');
-      window.dispatchEvent(online);
-      expect(sporran21.online, isTrue);
-      sporran21 = null;
     });
 
     test("2. Construction Existing Database ", () async {
@@ -337,8 +272,8 @@ void main() async {
 
     test("1. Create and Open Sporran", () async {
       print("3.1");
-      await wilting.deleteDatabase(databaseName);
-      wilting.db = databaseName;
+      await wilt.deleteDatabase(databaseName);
+      wilt.db = databaseName;
       sporran3 = await getSporran(initialiser);
       sporran3.online = true;
       sporran3.autoSync = false;
@@ -439,23 +374,16 @@ void main() async {
         });
     });
 
-    test("8. Get Document Offline Not Exist", () {
+    test("8. Get Document Offline Not Exist", () async {
       print("3.8");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isFalse);
-        expect(res.operation, Sporran.getc);
-        expect(res.localResponse, isTrue);
-        expect(res.id, "Billy");
-        expect(res.rev, isNull);
-        expect(res.payload, isNull);
-      });
-
       sporran3.online = false;
-      offlineDoc.name = "Offline";
-      sporran3.get("Billy")
-        ..then((res) {
-          wrapper(res);
-        });
+      final dynamic res = await sporran3.get("Billy");
+      expect(res.ok, isFalse);
+      expect(res.operation, Sporran.getc);
+      expect(res.localResponse, isTrue);
+      expect(res.id, "Billy");
+      expect(res.rev, isNull);
+      expect(res.payload, isNull);
     });
 
     test("9. Get Document Online docIdPutOnline", () async {
@@ -670,7 +598,7 @@ void main() async {
       expect(res.localResponse, isFalse);
       expect(res.rev, anything);
       expect(res.payload.attachmentName, "onlineAttachment");
-      expect(res.payload.contentType, 'image/png');
+      expect(res.payload.contentType == 'image/png' || res.payload.contentType == 'image/png; charset=utf-8', true);
       expect(res.payload.payload, attachmentPayload);
         
     });
@@ -795,8 +723,8 @@ void main() async {
 
     test("1. Create and Open Sporran", () async {
       print("5.1");
-      await wilting.deleteDatabase(databaseName);
-      wilting.db = databaseName;
+      await wilt.deleteDatabase(databaseName);
+      wilt.db = databaseName;
       sporran5 = await getSporran(initialiser);
       sporran5.autoSync = false;
       expect(sporran5.dbName, databaseName);
@@ -1016,8 +944,8 @@ void main() async {
 
     test("1. Create and Open Sporran", () async {
       print("6.1");
-      await wilting.deleteDatabase(databaseName);
-      wilting.db = databaseName;
+      await wilt.deleteDatabase(databaseName);
+      wilt.db = databaseName;
       initialiser.manualNotificationControl = false;
       sporran6 = await getSporran(initialiser);
       sporran6.autoSync = false;
@@ -1049,7 +977,7 @@ void main() async {
       docList.add(doc2);
       docList.add(doc3);
       final String docs = WiltUserUtils.createBulkInsertString(docList);
-      final dynamic res = await wilting.bulkString(docs);
+      final dynamic res = await wilt.bulkString(docs);
       
       expect(res.error, isFalse);
 
@@ -1114,7 +1042,7 @@ void main() async {
     test("7. Wilt - Delete Document MyBulkId1", () async {
       print("6.7");
       try {
-        final dynamic res = await wilting.deleteDocument("MyBulkId1", docId1Rev);
+        final dynamic res = await wilt.deleteDocument("MyBulkId1", docId1Rev);
         expect(res.error, isFalse);
         final dynamic successResponse = res.jsonCouchResponse;
         expect(successResponse.id, "MyBulkId1");
@@ -1152,7 +1080,7 @@ void main() async {
         expect(successResponse.id, "MyBulkId2");
       });
 
-      wilting.deleteDocument("MyBulkId2", docId2Rev)
+      wilt.deleteDocument("MyBulkId2", docId2Rev)
         ..then((res) {
           wrapper(res);
         });
@@ -1179,7 +1107,7 @@ void main() async {
         expect(successResponse.id, "MyBulkId3");
       });
 
-      wilting.deleteDocument("MyBulkId3", docId3Rev)
+      wilt.deleteDocument("MyBulkId3", docId3Rev)
         ..then((res) {
           wrapper(res);
         });
@@ -1257,8 +1185,8 @@ void main() async {
             '8a5HSE35Q3eO2XP1A1wQkZSgETvDtKdQAAAABJRU5ErkJggg==';
 
     test("1. Create and Open Sporran", () async {
-      await wilting.deleteDatabase(databaseName);
-      wilting.db = databaseName;
+      await wilt.deleteDatabase(databaseName);
+      wilt.db = databaseName;
       print("7.1");
       initialiser.manualNotificationControl = false;
 
@@ -1294,7 +1222,7 @@ void main() async {
       docList.add(doc3);
       final String docs = WiltUserUtils.createBulkInsertString(docList);
       
-      final dynamic res = await wilting.bulkString(docs);
+      final dynamic res = await wilt.bulkString(docs);
 
       final dynamic successResponse = res.jsonCouchResponse;
       expect(successResponse[0].id, equals("MyBulkId1"));
@@ -1372,7 +1300,7 @@ void main() async {
 
     test("7. Delete Attachment Online MyBulkId1 Attachment 1", () async {
       print("7.7");
-      var res = await wilting.deleteAttachment('MyBulkId1', 'AttachmentName1', docId1Rev);
+      var res = await wilt.deleteAttachment('MyBulkId1', 'AttachmentName1', docId1Rev);
       if(res.error) {
         logMessage("WILT::Delete Attachment Failed");
         final dynamic errorResponse = res.jsonCouchResponse;

@@ -4,31 +4,17 @@
  * Date   : 05/02/2014
  * Copyright :  S.Hamblett@OSCF
  */
-
-@TestOn("browser")
-
 import 'dart:async';
-
-import 'package:sporran/lawndart.dart';
-import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
-import 'package:sporran/src/WiltBrowserClient2.dart';
+import 'package:sporran/src/Sporran.dart';
+import 'package:sporran/src/SporranInitialiser.dart';
 import 'package:test/test.dart';
+import 'sporran_test.dart';
 import 'sporran_test_config.dart';
 import 'package:wilt/wilt.dart';
 
-void main() async {
-     /* Common initialiser */
-    final SporranInitialiser initialiser = new SporranInitialiser();
-    initialiser.dbName = databaseName;
-    initialiser.hostname = hostName;
-    initialiser.manualNotificationControl = false;
-    initialiser.port = port;
-    initialiser.scheme = scheme;
-    initialiser.username = userName;
-    initialiser.password = userPassword;
-    initialiser.preserveLocal = false;
-    initialiser.store = await MemoryStore.open();
+void runScenario2(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) async {
+
   /* Group 8 - Sporran Scenario test 2 */
   /**
    *  Start online
@@ -59,22 +45,13 @@ void main() async {
 
     Timer pause;
 
-    /* Create a Wilt instance for when we want to interface with CouchDb directly 
-    * (e.g. dropping the database or updating directly to test that change notifications are correctly picked up).
-    */
-
-    final Wilt wilting = new WiltBrowserClient2(hostName, port, scheme);
-
-    /* Login if we are using authentication */
-    if (userName != null) {
-      wilting.login(userName, userPassword);
-    }
-
     test("1. Create and Open Sporran", () async {
       print("9.1");
-      await wilting.deleteDatabase(databaseName);
-      wilting.db = databaseName;
+      await wilt.deleteDatabase(databaseName);
+      wilt.db = databaseName;
+      initialiser.manualNotificationControl = false;
       sporran9 = await getSporran(initialiser);
+      initialiser.manualNotificationControl = true;
       expect(sporran9.dbName, databaseName);
       expect(sporran9.lawnIsOpen, isTrue);
     });
@@ -315,51 +292,45 @@ void main() async {
       print("9.13");
       final wrapper = expectAsync0(() {});
 
-      pause = new Timer(new Duration(seconds: 3), wrapper);
+      pause = new Timer(new Duration(seconds: 5), wrapper);
     });
 
-    test("14. Check - Get All Docs Online", () {
+    test("14. Check - Get All Docs Online", () async {
       print("9.14");
-      final wrapper = expectAsync1((res) {
-        expect(res.ok, isTrue);
-        expect(res.localResponse, isFalse);
-        expect(res.operation, Sporran.getAllDocsc);
-        expect(res.id, isNull);
-        expect(res.rev, isNull);
-        expect(res.payload, isNotNull);
-        final dynamic successResponse = res.payload;
-        expect(successResponse.total_rows, equals(3));
-        expect(successResponse.rows[0].id, equals('9docid1'));
-        docid1rev = WiltUserUtils.getDocumentRev(successResponse.rows[0].doc);
-        expect(successResponse.rows[0].doc.title, "Document 1");
-        expect(successResponse.rows[0].doc.version, 1);
-        expect(successResponse.rows[0].doc.attribute, "Doc 1 attribute");
-        final List doc1Attachments =
-        WiltUserUtils.getAttachments(successResponse.rows[0].doc);
-        expect(doc1Attachments.length, 1);
-        expect(doc1Attachments[0].name, "AttachmentName2");
-        expect(successResponse.rows[1].id, equals('9docid2'));
-        docid2rev = WiltUserUtils.getDocumentRev(successResponse.rows[1].doc);
-        expect(successResponse.rows[1].doc.title, "Document 2 Updated");
-        expect(successResponse.rows[1].doc.version, 2);
-        expect(
-            successResponse.rows[1].doc.attribute, "Doc 2 attribute Updated");
-        final List doc2Attachments =
-        WiltUserUtils.getAttachments(successResponse.rows[1].doc);
-        expect(doc2Attachments.length, 0);
-        expect(successResponse.rows[2].id, equals('9docid4'));
-        expect(successResponse.rows[2].doc.title, "Document 4");
-        expect(successResponse.rows[2].doc.version, 4);
-        expect(successResponse.rows[2].doc.attribute, "Doc 4 attribute");
-        final List doc4Attachments =
-        WiltUserUtils.getAttachments(successResponse.rows[2].doc);
-        expect(doc4Attachments, isEmpty);
-      });
-
-      sporran9.getAllDocs(includeDocs: true)
-        ..then((res) {
-          wrapper(res);
-        });
+      final dynamic res = await sporran9.getAllDocs(includeDocs: true);
+      expect(res.ok, isTrue);
+      expect(res.localResponse, isFalse);
+      expect(res.operation, Sporran.getAllDocsc);
+      expect(res.id, isNull);
+      expect(res.rev, isNull);
+      expect(res.payload, isNotNull);
+      final dynamic successResponse = res.payload;
+      expect(successResponse.total_rows, equals(3));
+      expect(successResponse.rows[0].id, equals('9docid1'));
+      docid1rev = WiltUserUtils.getDocumentRev(successResponse.rows[0].doc);
+      expect(successResponse.rows[0].doc.title, "Document 1");
+      expect(successResponse.rows[0].doc.version, 1);
+      expect(successResponse.rows[0].doc.attribute, "Doc 1 attribute");
+      final List doc1Attachments =
+      WiltUserUtils.getAttachments(successResponse.rows[0].doc);
+      expect(doc1Attachments.length, 1);
+      expect(doc1Attachments[0].name, "AttachmentName2");
+      expect(successResponse.rows[1].id, equals('9docid2'));
+      docid2rev = WiltUserUtils.getDocumentRev(successResponse.rows[1].doc);
+      expect(successResponse.rows[1].doc.title, "Document 2 Updated");
+      expect(successResponse.rows[1].doc.version, 2);
+      expect(
+          successResponse.rows[1].doc.attribute, "Doc 2 attribute Updated");
+      final List doc2Attachments =
+      WiltUserUtils.getAttachments(successResponse.rows[1].doc);
+      expect(doc2Attachments.length, 0);
+      expect(successResponse.rows[2].id, equals('9docid4'));
+      expect(successResponse.rows[2].doc.title, "Document 4");
+      expect(successResponse.rows[2].doc.version, 4);
+      expect(successResponse.rows[2].doc.attribute, "Doc 4 attribute");
+      final List doc4Attachments =
+      WiltUserUtils.getAttachments(successResponse.rows[2].doc);
+      expect(doc4Attachments, isEmpty);
     });
   });
 }

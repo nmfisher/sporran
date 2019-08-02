@@ -5,43 +5,18 @@
  * Copyright :  S.Hamblett@OSCF
  */
 
-@TestOn("browser")
-
 import 'dart:async';
 
-import 'package:sporran/lawndart.dart';
-import 'package:sporran/sporran.dart';
 import 'package:json_object_lite/json_object_lite.dart';
-import 'package:sporran/src/WiltBrowserClient2.dart';
+import 'package:sporran/src/Sporran.dart';
+import 'package:sporran/src/SporranInitialiser.dart';
 import 'package:test/test.dart';
+import 'sporran_test.dart';
 import 'sporran_test_config.dart';
 import 'package:wilt/wilt.dart';
 
-void main() async {
-  /* Common initialiser */
-  final SporranInitialiser initialiser = new SporranInitialiser();
-  initialiser.dbName = databaseName;
-  initialiser.hostname = hostName;
-  initialiser.manualNotificationControl = false;
-  initialiser.port = port;
-  initialiser.scheme = scheme;
-  initialiser.username = userName;
-  initialiser.password = userPassword;
-  initialiser.preserveLocal = false;
-  initialiser.store = await MemoryStore.open();
+void runScenario1(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) async {
   Timer pause;
-
-  /* Create a Wilt instance for when we want to interface with CouchDb directly 
-  * (e.g. dropping the database or updating directly to test that change notifications are correctly picked up).
-  */
-
-  final Wilt wilting = new WiltBrowserClient2(hostName, port, scheme);
-
-  /* Login if we are using authentication */
-  if (userName != null) {
-    wilting.login(userName, userPassword);
-  }
-
   /* Group 8 - Sporran Scenario test 1 */
   /**
    *  Start offline 
@@ -66,8 +41,8 @@ void main() async {
 
     test("1. Create and Open Sporran", () async {
       print("8.1");
-      await wilting.deleteDatabase(databaseName);
-      wilting.db = databaseName;
+      await wilt.deleteDatabase(databaseName);
+      wilt.db = databaseName;
 
       sporran8 = await getSporran(initialiser);
       sporran8.sync();
