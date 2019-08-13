@@ -320,7 +320,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       onlineDoc.name = "Online";
       final SporranQuery res = await sporran3.put(docIdPutOnline, onlineDoc);
       expect(res.errorCode, 409);
-      expect(res.errorText, 'conflict');
+      expect(res.errorText, 'Document update conflict.');
       expect(res.operation, Sporran.putc);
       expect(res.id, docIdPutOnline);
     });

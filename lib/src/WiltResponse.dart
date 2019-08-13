@@ -5,7 +5,7 @@ import 'package:wilt/wilt.dart';
 
 class WiltResponse {
   WiltResponse.from(this.responseText, this.method, this.allResponseHeaders,
-      Map<String, String> headers) {
+      Map<String, String> headers, int statusCode) {
     try {
     /**
      * Check the header, if application/json try and decode it,
@@ -14,12 +14,12 @@ class WiltResponse {
       if (headers.containsValue('application/json')) {
         var responseJson = json.decode(responseText);
         /* If the request itself was successful but the response contains an error */
-        if (responseJson is Map && responseJson["error"] != null) {
+        if (responseJson is Map && responseJson != null && responseJson["error"] != null) {
           error = true;
-          final dynamic errorAsJson = new Map();
-          errorAsJson["error"] = "CouchDb Error";
-          errorAsJson["reason"] = jsonCouchResponse['reason'];
-          jsonCouchResponse = errorAsJson;
+          jsonCouchResponse = JsonObjectLite();
+          jsonCouchResponse["reason"] = responseJson['reason'];
+          jsonCouchResponse["error"] = responseJson['reason'];
+          errorCode = statusCode;
         } else if (method != Wilt.headd) {
           jsonCouchResponse = JsonObjectLite.fromJsonString(responseText); // why would we decode JSON twice just to preserve a dependency on JsonObjectLite?
         }
@@ -28,6 +28,7 @@ class WiltResponse {
       }
     } catch (e) {
       print("JSON decode error : $e");
+      print("Stacktrace : ${e.stackTrace}");
       error = true;
       final dynamic errorAsJson = new JsonObjectLite();
       errorAsJson.error = "json Decode Error";

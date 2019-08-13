@@ -49,12 +49,12 @@ class WiltServerHTTPAdapter2 extends WiltBaseHTTPAdapter {
           request.headers.addAll(headers);
           final StreamedResponse streamedResponse = await _client.send(request);
           var text = await streamedResponse.stream.bytesToString(utf8);
-          return new WiltResponse.from(text, httpMethod, null, response.headers);
+          return new WiltResponse.from(text, httpMethod, null, response.headers, response.statusCode);
       }
       return new WiltResponse.from(response.body, httpMethod,
-          null, response.headers);
+          null, response.headers, response.statusCode);
     } catch(err) {
-      print(err);
+      
       if(err.message == null) {
         print("Unknown HTTP error : $err");
       }

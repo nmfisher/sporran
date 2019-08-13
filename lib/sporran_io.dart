@@ -12,9 +12,8 @@ import 'dart:async';
 import 'package:sporran/src/Sporran.dart';
 import 'package:sporran/src/Event.dart' as eventWrapper;
 import 'package:sporran/src/SporranInitialiser.dart';
+import 'package:sporran/src/wilt/WiltServerClient2.dart';
 import 'package:wilt/wilt.dart';
-import 'package:wilt/wilt_server_client.dart';
-
 export 'src/Sporran.dart';
 export 'src/SporranException.dart';
 export 'src/SporranInitialiser.dart';
@@ -25,7 +24,7 @@ export 'src/tests/sporran_scenario1_test.dart';
 export 'src/tests/sporran_scenario2_test.dart';
 export 'src/tests/sporran_scenario3_test.dart';
 
-Wilt _getWiltClient(String host, String port, String scheme) => WiltServerClient(host, port, scheme);
+Wilt _getWiltClient(String host, String port, String scheme) => WiltServerClient2(host, port, scheme);
 
 eventWrapper.Event _eventFactory(String type, String name) => new eventWrapper.Event.eventType(type, name);
 
