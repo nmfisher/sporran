@@ -1,12 +1,14 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:json_object_lite/json_object_lite.dart';
 import 'package:wilt/wilt.dart';
 
 class WiltResponse {
-  WiltResponse.from(this.responseText, this.method, this.allResponseHeaders,
+  WiltResponse.from(Uint8List responseBody, this.method, this.allResponseHeaders,
       Map<String, String> headers, int statusCode) {
     try {
+      responseText = utf8.decode(responseBody);
     /**
      * Check the header, if application/json try and decode it,
      * otherwise its just raw data, ie an attachment.

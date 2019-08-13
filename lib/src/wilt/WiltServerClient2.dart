@@ -48,10 +48,9 @@ class WiltServerHTTPAdapter2 extends WiltBaseHTTPAdapter {
           final request = new http.Request("COPY", encodedUrl);
           request.headers.addAll(headers);
           final StreamedResponse streamedResponse = await _client.send(request);
-          var text = await streamedResponse.stream.bytesToString(utf8);
-          return new WiltResponse.from(text, httpMethod, null, response.headers, response.statusCode);
+          return new WiltResponse.from(await streamedResponse.stream.toBytes(), httpMethod, null, response.headers, response.statusCode);
       }
-      return new WiltResponse.from(response.body, httpMethod,
+      return new WiltResponse.from(response.bodyBytes, httpMethod,
           null, response.headers, response.statusCode);
     } catch(err) {
       
