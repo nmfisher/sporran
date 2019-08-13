@@ -17,6 +17,7 @@ class WiltResponse {
         var responseJson = json.decode(responseText);
         /* If the request itself was successful but the response contains an error */
         if (responseJson is Map && responseJson != null && responseJson["error"] != null) {
+          print("Processing error response : $responseJson");
           error = true;
           jsonCouchResponse = JsonObjectLite();
           jsonCouchResponse["reason"] = responseJson['reason'];
