@@ -15,6 +15,7 @@ import 'package:sporran/src/SporranInitialiser.dart';
 import 'package:sporran/src/wilt/WiltServerClient2.dart';
 import 'package:wilt/wilt.dart';
 export 'src/Sporran.dart';
+export 'src/SporranQuery.dart';
 export 'src/SporranException.dart';
 export 'src/SporranInitialiser.dart';
 // ideally these should be kept private to this library, but we export them for testing in Flutter projects
