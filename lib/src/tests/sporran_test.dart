@@ -283,7 +283,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
 
     test("2. Put Document Online docIdPutOnline", () async {
       print("3.2");
-      onlineDoc.name = "Online";
+      onlineDoc.name = "Online 在线"; // check that UTF-8 chars are decoding properly
       sporran3.online = true;
       SporranQuery res = await sporran3.put(docIdPutOnline, onlineDoc);
       print(res);
@@ -293,7 +293,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.id, docIdPutOnline);
       expect(res.rev, anything);
       onlineDocRev = res.rev;
-      expect(res.payload.name, "Online");
+      expect(res.payload.name, "Online 在线");
     });
 
     test("3. Put Document Offline docIdPutOffline", () {
