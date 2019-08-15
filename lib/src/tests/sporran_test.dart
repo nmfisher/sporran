@@ -293,7 +293,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.id, docIdPutOnline);
       expect(res.rev, anything);
       onlineDocRev = res.rev;
-      expect(res.payload.name, "Online 在线");
+      expect(res.payload["name"], "Online 在线");
     });
 
     test("3. Put Document Offline docIdPutOffline", () {
@@ -303,7 +303,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.operation, Sporran.putc);
         expect(res.localResponse, isTrue);
         expect(res.id, docIdPutOffline);
-        expect(res.payload.name, "Offline");
+        expect(res.payload["name"], "Offline");
       });
 
       sporran3.online = false;
@@ -334,7 +334,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.localResponse, isFalse);
         expect(res.id, docIdPutOnline);
         expect(res.rev, anything);
-        expect(res.payload.name, "Online - Updated");
+        expect(res.payload["name"], "Online - Updated");
       });
 
       onlineDoc.name = "Online - Updated";
@@ -353,7 +353,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.operation, Sporran.getc);
       expect(res.localResponse, isTrue);
       expect(res.id, docIdPutOnline);
-      expect(res.payload.name, "Online - Updated");
+      expect(res.payload["name"], "Online - Updated");
     });
 
     test("7. Get Document Offline docIdPutOffline", () {
@@ -363,7 +363,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.operation, Sporran.getc);
         expect(res.localResponse, isTrue);
         expect(res.id, docIdPutOffline);
-        expect(res.payload.name, "Offline");
+        expect(res.payload["name"], "Offline");
         expect(res.rev, isNull);
       });
 
@@ -392,7 +392,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       var res = await sporran3.get(docIdPutOnline);
       expect(res.ok, isTrue);
       expect(res.operation, Sporran.getc);
-      expect(res.payload.name, "Online - Updated");
+      expect(res.payload["name"], "Online - Updated");
       expect(res.localResponse, isFalse);
       expect(res.id, docIdPutOnline);
       onlineDocRev = res.rev;
@@ -505,7 +505,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.operation, Sporran.putc);
         expect(res.id, docIdPutOnline);
         expect(res.localResponse, isFalse);
-        expect(res.payload.name, "Online");
+        expect(res.payload["name"], "Online");
         expect(res.rev, anything);
         onlineDocRev = res.rev;
       });
@@ -525,7 +525,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.operation, Sporran.putc);
         expect(res.id, docIdPutOffline);
         expect(res.localResponse, isTrue);
-        expect(res.payload.name, "Offline");
+        expect(res.payload["name"], "Offline");
       });
 
       sporran4.online = false;
@@ -545,9 +545,9 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.localResponse, isFalse);
         expect(res.rev, anything);
         onlineDocRev = res.rev;
-        expect(res.payload.attachmentName, "onlineAttachment");
-        expect(res.payload.contentType, 'image/png');
-        expect(res.payload.payload, attachmentPayload);
+        expect(res.payload["attachmentName"], "onlineAttachment");
+        expect(res.payload["contentType"], 'image/png');
+        expect(res.payload["payload"], attachmentPayload);
       });
 
       sporran4.online = true;
@@ -570,9 +570,9 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.id, docIdPutOffline);
         expect(res.localResponse, isTrue);
         expect(res.rev, isNull);
-        expect(res.payload.attachmentName, "offlineAttachment");
-        expect(res.payload.contentType, 'image/png');
-        expect(res.payload.payload, attachmentPayload);
+        expect(res.payload["attachmentName"], "offlineAttachment");
+        expect(res.payload["contentType"], 'image/png');
+        expect(res.payload["payload"], attachmentPayload);
       });
 
       sporran4.online = false;
@@ -597,9 +597,9 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.id, docIdPutOnline);
       expect(res.localResponse, isFalse);
       expect(res.rev, anything);
-      expect(res.payload.attachmentName, "onlineAttachment");
-      expect(res.payload.contentType == 'image/png' || res.payload.contentType == 'image/png; charset=utf-8', true);
-      expect(res.payload.payload, attachmentPayload);
+      expect(res.payload["attachmentName"], "onlineAttachment");
+      expect(res.payload["contentType"] == 'image/png' || res.payload["contentType"] == 'image/png; charset=utf-8', true);
+      expect(res.payload["payload"], attachmentPayload);
         
     });
 
@@ -612,9 +612,9 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.localResponse, isTrue);
         expect(res.rev, isNull);
         print(res.payload);
-        expect(res.payload.payload.attachmentName, "offlineAttachment");
-        expect(res.payload.payload.contentType, 'image/png');
-        expect(res.payload.payload.payload, attachmentPayload);
+        expect(res.payload["payload"]["attachmentName"], "offlineAttachment");
+        expect(res.payload["payload"]["contentType"], 'image/png');
+        expect(res.payload["payload"]["payload"], attachmentPayload);
       });
 
       sporran4.online = false;
@@ -762,12 +762,12 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.id, isNull);
       expect(res.payload, isNotNull);
       expect(res.rev, isNotNull);
-      expect(res.rev[0].rev, anything);
-      docid1rev = res.rev[0].rev;
-      expect(res.rev[1].rev, anything);
-      docid2rev = res.rev[1].rev;
-      expect(res.rev[2].rev, anything);
-      docid3rev = res.rev[2].rev;
+      expect(res.rev[0]["rev"], anything);
+      docid1rev = res.rev[0]["rev"];
+      expect(res.rev[1]["rev"], anything);
+      docid2rev = res.rev[1]["rev"];
+      expect(res.rev[2]["rev"], anything);
+      docid3rev = res.rev[2]["rev"];
       final dynamic doc3 = res.payload['docid3'];
       expect(doc3.title, "Document 3");
       expect(doc3.version, 3);
@@ -822,11 +822,11 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.payload, isNotNull);
         final dynamic successResponse = res.payload;
         print(successResponse);
-        expect(successResponse.total_rows, equals(3));
+        expect(successResponse["total_rows"], equals(3));
         
-        expect(successResponse.rows[0].id, equals('docid1'));
-        expect(successResponse.rows[1].id, equals('docid2'));
-        expect(successResponse.rows[2].id, equals('docid3'));
+        expect(successResponse["rows"][0]["id"], equals('docid1'));
+        expect(successResponse["rows"][1]["id"], equals('docid2'));
+        expect(successResponse["rows"][2]["id"], equals('docid3'));
       });
 
       sporran5.online = true;
@@ -854,12 +854,12 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.rev, isNull);
       expect(res.payload, isNotNull);
       expect(res.payload.length, 6);
-      expect(res.payload['docid1'].payload.title, "Document 1");
-      expect(res.payload['docid2'].payload.title, "Document 2");
-      expect(res.payload['docid3'].payload.title, "Document 3");
-      expect(res.payload['docid1offline'].payload.title, "Document 1");
-      expect(res.payload['docid2offline'].payload.title, "Document 2");
-      expect(res.payload['docid3offline'].payload.title, "Document 3");
+      expect(res.payload['docid1']["payload"]["title"], "Document 1");
+      expect(res.payload['docid2']["payload"]["title"], "Document 2");
+      expect(res.payload['docid3']["payload"]["title"], "Document 3");
+      expect(res.payload['docid1offline']["payload"]["title"], "Document 1");
+      expect(res.payload['docid2offline']["payload"]["title"], "Document 2");
+      expect(res.payload['docid3offline']["payload"]["title"], "Document 3");
     });
 
     test("6. Get Database Info Offline", () {
@@ -897,8 +897,8 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.id, isNull);
       expect(res.rev, isNull);
       expect(res.payload, isNotNull);
-      expect(res.payload.doc_count, 3);
-      expect(res.payload.db_name, initialiser.dbName);
+      expect(res.payload["doc_count"], 3);
+      expect(res.payload["db_name"], initialiser.dbName);
     });
 
     test("8. Tidy Up All Docs Online", () {
@@ -969,12 +969,12 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.error, isFalse);
 
       final dynamic successResponse = res.jsonCouchResponse;
-      expect(successResponse[0].id, equals("MyBulkId1"));
-      expect(successResponse[1].id, equals("MyBulkId2"));
-      expect(successResponse[2].id, equals("MyBulkId3"));
-      docId1Rev = successResponse[0].rev;
-      docId2Rev = successResponse[1].rev;
-      docId3Rev = successResponse[2].rev;
+      expect(successResponse[0]["id"], equals("MyBulkId1"));
+      expect(successResponse[1]["id"], equals("MyBulkId2"));
+      expect(successResponse[2]["id"], equals("MyBulkId3"));
+      docId1Rev = successResponse[0]["rev"];
+      docId2Rev = successResponse[1]["rev"];
+      docId3Rev = successResponse[2]["rev"];
     });
 
     /* Pause a little for the notifications to come through */
@@ -996,7 +996,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.operation, Sporran.getc);
       expect(res.localResponse, isTrue);
       expect(res.id, "MyBulkId1");
-      expect(res.payload.title, "Document 1");
+      expect(res.payload["title"], "Document 1");
       expect(res.payload["version"], 1);
       expect(res.payload["attribute"], "Doc 1 attribute");
     });
@@ -1009,9 +1009,9 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.operation, Sporran.getc);
       expect(res.localResponse, isTrue);
       expect(res.id, "MyBulkId2");
-      expect(res.payload.title, "Document 2");
-      expect(res.payload.version, 2);
-      expect(res.payload.attribute, "Doc 2 attribute");
+      expect(res.payload["title"], "Document 2");
+      expect(res.payload["version"], 2);
+      expect(res.payload["attribute"], "Doc 2 attribute");
     });
 
     test("6. Get Document Offline MyBulkId3", () async {
@@ -1021,9 +1021,9 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.operation, Sporran.getc);
       expect(res.localResponse, isTrue);
       expect(res.id, "MyBulkId3");
-      expect(res.payload.title, "Document 3");
-      expect(res.payload.version, 3);
-      expect(res.payload.attribute, "Doc 3 attribute");
+      expect(res.payload["title"], "Document 3");
+      expect(res.payload["version"], 3);
+      expect(res.payload["attribute"], "Doc 3 attribute");
     });
 
     test("7. Wilt - Delete Document MyBulkId1", () async {
@@ -1032,7 +1032,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         final dynamic res = await wilt.deleteDocument("MyBulkId1", docId1Rev);
         expect(res.error, isFalse);
         final dynamic successResponse = res.jsonCouchResponse;
-        expect(successResponse.id, "MyBulkId1");
+        expect(successResponse["id"], "MyBulkId1");
       } catch (e) {
         print(e.toString());
         logMessage("WILT::Delete Document MyBulkId1");
@@ -1064,7 +1064,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         }
 
         final dynamic successResponse = res.jsonCouchResponse;
-        expect(successResponse.id, "MyBulkId2");
+        expect(successResponse["id"], "MyBulkId2");
       });
 
       wilt.deleteDocument("MyBulkId2", docId2Rev)
@@ -1091,7 +1091,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         }
 
         final dynamic successResponse = res.jsonCouchResponse;
-        expect(successResponse.id, "MyBulkId3");
+        expect(successResponse["id"], "MyBulkId3");
       });
 
       wilt.deleteDocument("MyBulkId3", docId3Rev)
@@ -1212,10 +1212,10 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       final dynamic res = await wilt.bulkString(docs);
 
       final dynamic successResponse = res.jsonCouchResponse;
-      expect(successResponse[0].id, equals("MyBulkId1"));
-      expect(successResponse[1].id, equals("MyBulkId2"));
-      expect(successResponse[2].id, equals("MyBulkId3"));
-      docId1Rev = successResponse[0].rev;
+      expect(successResponse[0]["id"], equals("MyBulkId1"));
+      expect(successResponse[1]["id"], equals("MyBulkId2"));
+      expect(successResponse[2]["id"], equals("MyBulkId3"));
+      docId1Rev = successResponse[0]["rev"];
     });
 
     /* Pause a little for the notifications to come through */
@@ -1246,9 +1246,9 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.localResponse, isFalse);
       expect(res.rev, anything);
       docId1Rev = res.rev;
-      expect(res.payload.attachmentName, "AttachmentName1");
-      expect(res.payload.contentType, 'image/png');
-      expect(res.payload.payload, attachmentPayload);
+      expect(res.payload["attachmentName"], "AttachmentName1");
+      expect(res.payload["contentType"], 'image/png');
+      expect(res.payload["payload"], attachmentPayload);
     });
 
     test("5. Create Attachment Online MyBulkId1 Attachment 2", () {
@@ -1260,9 +1260,9 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.localResponse, isFalse);
         expect(res.rev, anything);
         docId1Rev = res.rev;
-        expect(res.payload.attachmentName, "AttachmentName2");
-        expect(res.payload.contentType, 'image/png');
-        expect(res.payload.payload, attachmentPayload);
+        expect(res.payload["attachmentName"], "AttachmentName2");
+        expect(res.payload["contentType"], 'image/png');
+        expect(res.payload["payload"], attachmentPayload);
       });
 
       sporran7.online = true;
@@ -1300,8 +1300,8 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       }
       expect(res.error, isFalse);
       final dynamic successResponse = res.jsonCouchResponse;
-      expect(successResponse.ok, isTrue);
-      docId1Rev = successResponse.rev;
+      expect(successResponse["ok"], isTrue);
+      docId1Rev = successResponse["rev"];
     });
 
     test("8. Notification Pause", () {

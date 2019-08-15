@@ -162,7 +162,7 @@ class Sporran {
   /// If the document does not exist a create is performed.
   ///
   /// For an update operation a specific revision must be specified.
-  Future<SporranQuery> put(String id, JsonObjectLite document, [String rev = null]) async {
+  Future<SporranQuery> put(String id, dynamic document, [String rev = null]) async {
     if (id == null) {
       throw new SporranException(SporranException.putNoDocIdEx);
     }
@@ -187,15 +187,15 @@ class Sporran {
     res.localResponse = false;
     
     if(!wiltResponse.error) {
-      res.rev = wiltResponse.jsonCouchResponse.rev;
+      res.rev = wiltResponse.jsonCouchResponse["rev"];
       await _database.updateLocalStorageObject(id, document, rev, SporranDatabase.updatedc);
       await _database.updateAttachmentRevisions(id, rev);
       res.ok = true;
     } else {
       res.ok = false;
       res.errorCode = wiltResponse.errorCode;
-      res.errorText = wiltResponse.jsonCouchResponse.error;
-      res.errorReason = wiltResponse.jsonCouchResponse.reason;
+      res.errorText = wiltResponse.jsonCouchResponse["error"];
+      res.errorReason = wiltResponse.jsonCouchResponse["reason"];
     }
     return res;
   }
@@ -212,13 +212,12 @@ class Sporran {
 
     /* Check for offline, if so try the get from local storage */
     if (!online) {
-      final JsonObjectLite document = await _database.getLocalStorageObject(id);
-      print(document);
+      final dynamic document = await _database.getLocalStorageObject(id);
       res.localResponse = true;
       res.ok = !document.isEmpty;
       if(res.ok) {
         res.payload = document["payload"];
-        res.rev = WiltUserUtils.getDocumentRev(document);;
+        res.rev = document["_rev"];;
       }
       return res;
     }
@@ -230,7 +229,7 @@ class Sporran {
     print(wiltResponse);
     res.ok = !wiltResponse.error;
     res.payload = res.ok ? wiltResponse.jsonCouchResponse : null;
-    res.rev = res.ok ? WiltUserUtils.getDocumentRev(wiltResponse.jsonCouchResponse) : null;
+    res.rev = res.ok ? wiltResponse.jsonCouchResponse["_rev"] : null;
 
     /* If Ok update local storage with the document */
     if (res.ok) {
@@ -242,8 +241,8 @@ class Sporran {
       await _database.createDocumentAttachments(id, res.payload);
     } else {
       res.errorCode = wiltResponse.errorCode;
-      res.errorText = wiltResponse.jsonCouchResponse.error;
-      res.errorReason = wiltResponse.jsonCouchResponse.reason;
+      res.errorText = wiltResponse.jsonCouchResponse["error"];
+      res.errorReason = wiltResponse.jsonCouchResponse["reason"];
     }
     return res;
   }
@@ -291,12 +290,12 @@ class Sporran {
     res.payload = wiltResponse.jsonCouchResponse;
     res.id = id;
     res.ok = !wiltResponse.error;
-    res.rev = wiltResponse.error ? null : wiltResponse.jsonCouchResponse.rev;
+    res.rev = wiltResponse.error ? null : wiltResponse.jsonCouchResponse["rev"];
     _database.removePendingDelete(id);
     if(!res.ok) {
       res.errorCode = wiltResponse.errorCode;
-      res.errorText = wiltResponse.jsonCouchResponse.error;
-      res.errorReason = wiltResponse.jsonCouchResponse.reason;
+      res.errorText = wiltResponse.jsonCouchResponse["error"];
+      res.errorReason = wiltResponse.jsonCouchResponse["reason"];
     }
     return res;
   }
@@ -344,27 +343,25 @@ class Sporran {
     final dynamic wiltResponse = await attachmentHandler(id, attachment.attachmentName,
               attachment.rev, attachment.contentType, attachment.payload);
 
-    print("wiltResponse : $wiltResponse");
-
     res.ok = !(wiltResponse.error);
     res.localResponse = false;
 
     /* If success, mark the update as UPDATED in local storage */
     if (res.ok) {
-      final dynamic newAttachment = new JsonObjectLite.fromJsonString(_mapToJson(attachment));
-      newAttachment.contentType = attachment.contentType;
-      newAttachment.payload = attachment.payload;
-      newAttachment.attachmentName = attachment.attachmentName;
+      final dynamic newAttachment = jsonDecode(_mapToJson(attachment));
+      newAttachment["contentType"] = attachment.contentType;
+      newAttachment["payload"] = attachment.payload;
+      newAttachment["attachmentName"] = attachment.attachmentName;
       res.payload = newAttachment;
-      res.rev = wiltResponse.jsonCouchResponse.rev;
-      newAttachment.rev = wiltResponse.jsonCouchResponse.rev;
+      res.rev = wiltResponse.jsonCouchResponse["rev"];
+      newAttachment["rev"] = wiltResponse.jsonCouchResponse["rev"];
       await _database.updateLocalStorageObject(key, newAttachment,
-          wiltResponse.jsonCouchResponse.rev, SporranDatabase.updatedc);
-      await _database.updateAttachmentRevisions(id, wiltResponse.jsonCouchResponse.rev);
+          wiltResponse.jsonCouchResponse["rev"], SporranDatabase.updatedc);
+      await _database.updateAttachmentRevisions(id, wiltResponse.jsonCouchResponse["rev"]);
     } else {
       res.errorCode = wiltResponse.errorCode;
-      res.errorText = wiltResponse.jsonCouchResponse.error;
-      res.errorReason = wiltResponse.jsonCouchResponse.reason;
+      res.errorText = wiltResponse.jsonCouchResponse["error"];
+      res.errorReason = wiltResponse.jsonCouchResponse["reason"];
     }
 
     return res;
@@ -415,13 +412,13 @@ class Sporran {
     res.localResponse = false;
     res.payload = wiltResponse.jsonCouchResponse;
     res.ok = !wiltResponse.error;
-    res.rev = wiltResponse.error ? null : wiltResponse.jsonCouchResponse.rev;
+    res.rev = wiltResponse.error ? null : wiltResponse.jsonCouchResponse["rev"];
     if(res.ok) {
       _database.removePendingDelete(key);
     } else {
       res.errorCode = wiltResponse.errorCode;
-      res.errorText = wiltResponse.jsonCouchResponse.error;
-      res.errorReason = wiltResponse.jsonCouchResponse.reason;
+      res.errorText = wiltResponse.jsonCouchResponse["error"];
+      res.errorReason = wiltResponse.jsonCouchResponse["reason"];
     }
     
     return res;
@@ -460,14 +457,16 @@ class Sporran {
     res.ok = !wiltResponse.error;
     if (!res.ok) {
       res.errorCode = wiltResponse.errorCode;
-      res.errorText = wiltResponse.jsonCouchResponse.error;
-      res.errorReason = wiltResponse.jsonCouchResponse.reason;
+      res.errorText = wiltResponse.jsonCouchResponse["error"];
+      res.errorReason = wiltResponse.jsonCouchResponse["reason"];
     } else {
-      final dynamic attachment = new JsonObjectLite();
-      attachment.attachmentName = attachmentName;
-      attachment.contentType = wiltResponse.jsonCouchResponse.contentType;
-      attachment.payload = wiltResponse.responseText;
-      attachment.rev = res.rev;
+      final dynamic attachment = {
+        "attachmentName":attachmentName,
+        "contentType":wiltResponse.jsonCouchResponse["contentType"],
+        "payload":wiltResponse.responseText,
+        "rev":res.rev,
+      };
+      
       res.payload = attachment;
 
       _database.updateLocalStorageObject(
@@ -479,7 +478,7 @@ class Sporran {
   /// Bulk document create.
   ///
   /// docList is a map of documents with their keys
-  Future<SporranQuery> bulkCreate(Map<String, JsonObjectLite> docList) async {
+  Future<SporranQuery> bulkCreate(Map<String, dynamic> docList) async {
 
     if (docList == null) {
       throw new SporranException(SporranException.bulkCreateNoDocListEx);
@@ -517,11 +516,11 @@ class Sporran {
     res.payload = docList;
     if (!res.ok) {
       res.errorCode = wiltResponse.errorCode;
-      res.errorText = wiltResponse.jsonCouchResponse.error;
-      res.errorReason = wiltResponse.jsonCouchResponse.reason;
+      res.errorText = wiltResponse.jsonCouchResponse["error"];
+      res.errorReason = wiltResponse.jsonCouchResponse["reason"];
     } else {
       /* Get the revisions for the updates */
-      final List revisions = new List<JsonObjectLite>();
+      final List revisions = new List<dynamic>();
       final Map revisionsMap = new Map<String, String>();
 
       wiltResponse.jsonCouchResponse.toList().forEach((resp) {
@@ -529,7 +528,8 @@ class Sporran {
           revisions.add(resp);
           revisionsMap[resp.id] = resp.rev;
         } catch (e) {
-          revisions.add(null);
+          print(e);
+          // revisions.add(null);
         }
       });
       res.rev = revisions;
@@ -599,8 +599,8 @@ class Sporran {
       res.ok = !wiltResponse.error;
       if(!res.ok) {
         res.errorCode = wiltResponse.errorCode;
-        res.errorText = wiltResponse.jsonCouchResponse.error;
-        res.errorReason = wiltResponse.jsonCouchResponse.reason;
+        res.errorText = wiltResponse.jsonCouchResponse["error"];
+        res.errorReason = wiltResponse.jsonCouchResponse["reason"];
       } else {
         res.payload = wiltResponse.jsonCouchResponse;
       }
@@ -629,8 +629,8 @@ class Sporran {
       res.ok = !wiltResponse.error; 
       if(!res.ok) {
         res.errorCode = wiltResponse.errorCode;
-        res.errorText = wiltResponse.jsonCouchResponse.error;
-        res.errorReason = wiltResponse.jsonCouchResponse.reason;
+        res.errorText = wiltResponse.jsonCouchResponse["error"];
+        res.errorReason = wiltResponse.jsonCouchResponse["reason"];
       } else {
         res.payload = wiltResponse.jsonCouchResponse;
       }

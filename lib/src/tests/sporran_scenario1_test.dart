@@ -60,25 +60,25 @@ void runScenario1(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
         expect(res.payload, isNotNull);
         expect(res.rev, isNull);
         final dynamic doc3 = res.payload['8docid3'];
-        expect(doc3.title, "Document 3");
-        expect(doc3.version, 3);
-        expect(doc3.attribute, "Doc 3 attribute");
+        expect(doc3["title"], "Document 3");
+        expect(doc3["version"], 3);
+        expect(doc3["attribute"], "Doc 3 attribute");
       });
 
       final dynamic document1 = new JsonObjectLite();
-      document1.title = "Document 1";
-      document1.version = 1;
-      document1.attribute = "Doc 1 attribute";
+      document1["title"] = "Document 1";
+      document1["version"] = 1;
+      document1["attribute"] = "Doc 1 attribute";
 
       final dynamic document2 = new JsonObjectLite();
-      document2.title = "Document 2";
-      document2.version = 2;
-      document2.attribute = "Doc 2 attribute";
+      document2["title"] = "Document 2";
+      document2["version"] = 2;
+      document2["attribute"] = "Doc 2 attribute";
 
       final dynamic document3 = new JsonObjectLite();
-      document3.title = "Document 3";
-      document3.version = 3;
-      document3.attribute = "Doc 3 attribute";
+      document3["title"] = "Document 3";
+      document3["version"] = 3;
+      document3["attribute"] = "Doc 3 attribute";
 
       final Map docs = new Map<String, JsonObjectLite>();
       docs['8docid1'] = document1;
@@ -100,9 +100,9 @@ void runScenario1(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
         expect(res.localResponse, isTrue);
         expect(res.rev, anything);
         docid1rev = res.rev;
-        expect(res.payload.attachmentName, "AttachmentName1");
-        expect(res.payload.contentType, 'image/png');
-        expect(res.payload.payload, attachmentPayload);
+        expect(res.payload["attachmentName"], "AttachmentName1");
+        expect(res.payload["contentType"], 'image/png');
+        expect(res.payload["payload"], attachmentPayload);
       });
 
       final dynamic attachment = new JsonObjectLite();
@@ -125,9 +125,9 @@ void runScenario1(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
         expect(res.localResponse, isTrue);
         expect(res.rev, anything);
         docid1rev = res.rev;
-        expect(res.payload.attachmentName, "AttachmentName2");
-        expect(res.payload.contentType, 'image/png');
-        expect(res.payload.payload, attachmentPayload);
+        expect(res.payload["attachmentName"], "AttachmentName2");
+        expect(res.payload["contentType"], 'image/png');
+        expect(res.payload["payload"], attachmentPayload);
       });
 
       final dynamic attachment = new JsonObjectLite();
@@ -150,9 +150,9 @@ void runScenario1(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
         expect(res.localResponse, isTrue);
         expect(res.rev, anything);
         docid2rev = res.rev;
-        expect(res.payload.attachmentName, "AttachmentName1");
-        expect(res.payload.contentType, 'image/png');
-        expect(res.payload.payload, attachmentPayload);
+        expect(res.payload["attachmentName"], "AttachmentName1");
+        expect(res.payload["contentType"], 'image/png');
+        expect(res.payload["payload"], attachmentPayload);
       });
 
       final dynamic attachment = new JsonObjectLite();
@@ -207,22 +207,22 @@ void runScenario1(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
       expect(res.rev, isNull);
       expect(res.payload, isNotNull);
       final dynamic successResponse = res.payload;
-      expect(successResponse.total_rows, equals(2));
-      expect(successResponse.rows[0].id, equals('8docid1'));
-      docid1rev = WiltUserUtils.getDocumentRev(successResponse.rows[0].doc);
-      expect(successResponse.rows[1].id, equals('8docid2'));
-      docid2rev = WiltUserUtils.getDocumentRev(successResponse.rows[1].doc);
-      expect(successResponse.rows[0].doc.title, "Document 1");
-      expect(successResponse.rows[0].doc.version, 1);
-      expect(successResponse.rows[0].doc.attribute, "Doc 1 attribute");
+      expect(successResponse["total_rows"], equals(2));
+      expect(successResponse["rows"][0]["id"], equals('8docid1'));
+      docid1rev = WiltUserUtils.getDocumentRev(successResponse["rows"][0]["doc"]);
+      expect(successResponse["rows"][1]["id"], equals('8docid2'));
+      docid2rev = WiltUserUtils.getDocumentRev(successResponse["rows"][1]["doc"]);
+      expect(successResponse["rows"][0]["doc"]["title"], "Document 1");
+      expect(successResponse["rows"][0]["doc"]["version"], 1);
+      expect(successResponse["rows"][0]["doc"]["attribute"], "Doc 1 attribute");
       final List doc1Attachments =
-      WiltUserUtils.getAttachments(successResponse.rows[0].doc);
+      WiltUserUtils.getAttachments(successResponse["rows"][0]["doc"]);
       expect(doc1Attachments.length, 2);
-      expect(successResponse.rows[1].doc.title, "Document 2");
-      expect(successResponse.rows[1].doc.version, 2);
-      expect(successResponse.rows[1].doc.attribute, "Doc 2 attribute");
+      expect(successResponse["rows"][1]["doc"]["title"], "Document 2");
+      expect(successResponse["rows"][1]["doc"]["version"], 2);
+      expect(successResponse["rows"][1]["doc"]["attribute"], "Doc 2 attribute");
       final List doc2Attachments =
-      WiltUserUtils.getAttachments(successResponse.rows[1].doc);
+      WiltUserUtils.getAttachments(successResponse["rows"][1]["doc"]);
       expect(doc2Attachments.length, 1);
     });
   });

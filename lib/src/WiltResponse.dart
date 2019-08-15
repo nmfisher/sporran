@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
-import 'package:json_object_lite/json_object_lite.dart';
 import 'package:wilt/wilt.dart';
 
 class WiltResponse {
   WiltResponse.from(Uint8List responseBody, this.method, this.allResponseHeaders,
       Map<String, String> headers, int statusCode) {
     try {
+      print("Decoding from response byte stream");
       responseText = utf8.decode(responseBody);
     /**
      * Check the header, if application/json try and decode it,
@@ -19,33 +18,33 @@ class WiltResponse {
         if (responseJson is Map && responseJson != null && responseJson["error"] != null) {
           print("Processing error response : $responseJson");
           error = true;
-          jsonCouchResponse = JsonObjectLite();
+          jsonCouchResponse = Map<String,String>();
           jsonCouchResponse["reason"] = responseJson['reason'];
           jsonCouchResponse["error"] = responseJson['reason'];
           errorCode = statusCode;
         } else if (method != Wilt.headd) {
-          jsonCouchResponse = JsonObjectLite.fromJsonString(responseText); // why would we decode JSON twice just to preserve a dependency on JsonObjectLite?
+          jsonCouchResponse = responseJson;
         }
       } else {
-        jsonCouchResponse = JsonObjectLite.fromJsonString("{\"ok\":true, \"contentType\": \"${headers['content-type']}\"}");
+        jsonCouchResponse = jsonDecode("{\"ok\":true, \"contentType\": \"${headers['content-type']}\"}");
       }
     } catch (e) {
       print("JSON decode error : $e");
       print("Stacktrace : ${e.stackTrace}");
       error = true;
-      final dynamic errorAsJson = new JsonObjectLite();
-      errorAsJson.error = "json Decode Error";
-      errorAsJson.reason = "None";
-      jsonCouchResponse = errorAsJson;
+      jsonCouchResponse = {
+        "error":"json Decode Error",
+        "reason":"None"
+      };
     }
   }
 
   WiltResponse.fromError(this.responseText, this.errorText, this.errorCode, this.method, this.allResponseHeaders) {
     error = true;
     if ((errorCode != 0) && (method != Wilt.headd)) {
-      jsonCouchResponse = JsonObjectLite.fromJsonString(responseText);
+      jsonCouchResponse = jsonDecode(responseText);
     } else {
-      jsonCouchResponse = JsonObjectLite.fromJsonString("{\"error\":\"Invalid HTTP response\", \"reason\":\"HEAD or status code of 0\"}");
+      jsonCouchResponse = jsonDecode("{\"error\":\"Invalid HTTP response\", \"reason\":\"HEAD or status code of 0\"}");
     }
   }
 
@@ -61,5 +60,5 @@ class WiltResponse {
   String allResponseHeaders;
   String method;
   String responseText;
-  JsonObjectLite jsonCouchResponse;
+  dynamic jsonCouchResponse;
 }
