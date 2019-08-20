@@ -9,8 +9,8 @@ import 'package:sporran/src/wilt/WiltBaseHTTPAdapter.dart';
 
 
 class WiltServerClient2 extends Wilt {
-  WiltServerClient2(host, port, scheme, [Object clientCompletion])
-        : super(host, port, scheme, new WiltServerHTTPAdapter2(), clientCompletion);
+  WiltServerClient2(host, port, scheme)
+        : super(host, port, scheme, new WiltServerHTTPAdapter2());
 }
       
 class WiltServerHTTPAdapter2 extends WiltBaseHTTPAdapter {

@@ -306,7 +306,7 @@ void runScenario2(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
       final dynamic successResponse = res.payload;
       expect(successResponse["total_rows"], equals(3));
       expect(successResponse["rows"][0]["id"], equals('9docid1'));
-      docid1rev = WiltUserUtils.getDocumentRev(successResponse["rows"][0]["doc"]);
+      docid1rev = successResponse["rows"][0]["doc"]["_rev"];
       expect(successResponse["rows"][0]["doc"]["title"], "Document 1");
       expect(successResponse["rows"][0]["doc"]["version"], 1);
       expect(successResponse["rows"][0]["doc"]["attribute"], "Doc 1 attribute");
@@ -315,7 +315,7 @@ void runScenario2(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
       expect(doc1Attachments.length, 1);
       expect(doc1Attachments[0]["name"], "AttachmentName2");
       expect(successResponse["rows"][1]["id"], equals('9docid2'));
-      docid2rev = WiltUserUtils.getDocumentRev(successResponse["rows"][1]["doc"]);
+      docid2rev = successResponse["rows"][1]["doc"]["_rev"];
       expect(successResponse["rows"][1]["doc"]["title"], "Document 2 Updated");
       expect(successResponse["rows"][1]["doc"]["version"], 2);
       expect(

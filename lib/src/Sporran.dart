@@ -162,7 +162,7 @@ class Sporran {
   /// If the document does not exist a create is performed.
   ///
   /// For an update operation a specific revision must be specified.
-  Future<SporranQuery> put(String id, dynamic document, [String rev = null]) async {
+  Future<SporranQuery> put(String id, Map document, [String rev = null]) async {
     if (id == null) {
       throw new SporranException(SporranException.putNoDocIdEx);
     }
@@ -182,8 +182,10 @@ class Sporran {
       res.rev = rev;
       return res;
     }
-
-    final dynamic wiltResponse = await _database.wilt.putDocument(id, document, rev);
+    if(rev != null) {
+      document["_rev"] = rev;
+    }
+    final dynamic wiltResponse = await _database.wilt.putDocument(id, document);
     res.localResponse = false;
     
     if(!wiltResponse.error) {
@@ -649,8 +651,10 @@ class Sporran {
   /// lost with Couch.
   void sync() {
     /* Only if we are online */
-    if (!online) return;
-
+    if (!online) {
+      print("Not online, skipping sync");
+      return;
+    }
     _database.sync();
   }
 

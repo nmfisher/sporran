@@ -193,7 +193,7 @@ void runScenario1(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
       print("8.8");
       final wrapper = expectAsync0(() {});
 
-      pause = new Timer(new Duration(seconds: 10), wrapper);
+      pause = new Timer(new Duration(seconds: 5), wrapper);
     });
 
     test("9. Check - Get All Docs Online", () async {
@@ -209,9 +209,9 @@ void runScenario1(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
       final dynamic successResponse = res.payload;
       expect(successResponse["total_rows"], equals(2));
       expect(successResponse["rows"][0]["id"], equals('8docid1'));
-      docid1rev = WiltUserUtils.getDocumentRev(successResponse["rows"][0]["doc"]);
+      docid1rev = successResponse["rows"][0]["doc"]["_rev"];
       expect(successResponse["rows"][1]["id"], equals('8docid2'));
-      docid2rev = WiltUserUtils.getDocumentRev(successResponse["rows"][1]["doc"]);
+      docid2rev = successResponse["rows"][1]["doc"]["_rev"];
       expect(successResponse["rows"][0]["doc"]["title"], "Document 1");
       expect(successResponse["rows"][0]["doc"]["version"], 1);
       expect(successResponse["rows"][0]["doc"]["attribute"], "Doc 1 attribute");

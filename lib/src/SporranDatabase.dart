@@ -134,6 +134,7 @@ class SporranDatabase {
 
   /// Change notification processor
   void _processChange(WiltChangeNotificationEvent e) {
+    print("Processing change notification [ $e] ");
     /* Ignore error events */
     if (!(e.type == WiltChangeNotificationEvent.updatee ||
         e.type == WiltChangeNotificationEvent.deletee)) return;
@@ -409,10 +410,8 @@ class SporranDatabase {
             });
 
             if (!found) {
-              final String newRevision =
-                  WiltUserUtils.getDocumentRev(successResponse);
               wilting.updateAttachment(
-                  key, name, newRevision, contentType, payload);
+                  key, name, successResponse["_rev"], contentType, payload);
             }
           }
         }
@@ -420,7 +419,7 @@ class SporranDatabase {
   }
 
   /// Update/create a CouchDb document
-  Future<String> update(String key, dynamic document, String revision) {
+  Future<String> update(String key, Map document, String revision) {
     final Completer<String> completer = new Completer<String>();
 
     /* Create our own Wilt instance */
@@ -437,8 +436,14 @@ class SporranDatabase {
       }
     }
 
+    if(revision != null) {
+      document["_rev"] = revision;
+    }
+
+    print("Putting document : [ $document ]");
+
     wilting.db = _dbName;
-    wilting.putDocument(key, document, revision)
+    wilting.putDocument(key, document)
       ..then((res) {
         localCompleter(res);
       });
@@ -520,6 +525,8 @@ class SporranDatabase {
 
   /// Synchronise local storage with CouchDb
   void sync() {
+    print("Starting sync.");
+
     /*
      * Pending deletes first
      */
@@ -592,7 +599,7 @@ class SporranDatabase {
     attachments.forEach((dynamic attachment) {
       final dynamic attachmentToCreate = {
         "attachmentName":attachment["name"],
-        "rev":WiltUserUtils.getDocumentRev(document),
+        "rev":document["_rev"],
         "contentType":attachment["data"]["content_type"]
       };
       final String attachmentKey =
