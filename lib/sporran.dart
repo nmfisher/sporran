@@ -25,7 +25,7 @@ Wilt _getWiltClient(String host, String port, String scheme) => WiltBrowserClien
 
 eventWrapper.Event _eventFactory(String type, String name) => new eventWrapper.Event.eventType(type, name);
 
-Future<Sporran> getSporran(SporranInitialiser initialiser) async {
+Future<Sporran> getSporran(SporranInitialiser initialiser, bool localOnly) async {
   final SynchronousStreamController<bool> _onlineStreamController = StreamController<bool>(sync: true);
   window.onOnline.listen((x) {
     _onlineStreamController.add(true);
@@ -35,7 +35,7 @@ Future<Sporran> getSporran(SporranInitialiser initialiser) async {
     _onlineStreamController.add(false);
   });
   
-  final Sporran sporran = Sporran(initialiser, _onlineStreamController.stream, _getWiltClient, _eventFactory);
+  final Sporran sporran = Sporran(initialiser, _onlineStreamController.stream, _getWiltClient, _eventFactory, localOnly);
   await sporran.onReady.first;
   return sporran;
 }
