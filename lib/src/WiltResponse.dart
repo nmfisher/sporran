@@ -6,14 +6,13 @@ class WiltResponse {
   WiltResponse.from(Uint8List responseBody, this.method, this.allResponseHeaders,
       Map<String, String> headers, int statusCode) {
     try {
-      print("Decoding from response byte stream");
       responseText = utf8.decode(responseBody);
     /**
      * Check the header, if application/json try and decode it,
      * otherwise its just raw data, ie an attachment.
      */
       if (headers.containsValue('application/json')) {
-        var responseJson = json.decode(responseText);
+        final dynamic responseJson = json.decode(responseText);
         /* If the request itself was successful but the response contains an error */
         if (responseJson is Map && responseJson != null && responseJson["error"] != null) {
           print("Processing error response : $responseJson");

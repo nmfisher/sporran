@@ -217,7 +217,7 @@ class SporranDatabase {
       final bool exists = successResponse.contains(_dbName);
       /// If the CouchDb database does not exist create it.
       if (exists == false) {
-        var created = await _wilt.createDatabase(_dbName);
+        final dynamic created = await _wilt.createDatabase(_dbName);
         if (created.error) {
           throw Exception();
         }

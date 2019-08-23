@@ -15,8 +15,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-
-import 'package:json_object_lite/json_object_lite.dart';
 import 'package:sporran/lawndart.dart';
 import 'package:sporran/src/EventFactory.dart';
 import 'package:sporran/src/SporranException.dart';
@@ -228,7 +226,6 @@ class Sporran {
     final dynamic wiltResponse = await _database.wilt.getDocument(id, rev, true);
     
     res.localResponse = false;
-    print(wiltResponse);
     res.ok = !wiltResponse.error;
     res.payload = res.ok ? wiltResponse.jsonCouchResponse : null;
     res.rev = res.ok ? wiltResponse.jsonCouchResponse["_rev"] : null;
