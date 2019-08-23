@@ -197,14 +197,15 @@ void runScenario3(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
       final List keyList = res.keyList;
       expect(keyList[0], '8docid1');
       expect(keyList[1], '8docid2');
-      expect(res.payload[keyList[0]]["key"], equals('8docid1'));
-      expect(res.payload[keyList[0]]["payload"]["title"], "Document 1");
-      expect(res.payload[keyList[0]]["payload"]["version"], 1);
-      expect(res.payload[keyList[0]]["payload"]["attribute"], "Doc 1 attribute");
-      expect(res.payload[keyList[1]]["key"], equals('8docid2'));
-      expect(res.payload[keyList[1]]["payload"]["title"], "Document 2");
-      expect(res.payload[keyList[1]]["payload"]["version"], 2);
-      expect(res.payload[keyList[1]]["payload"]["attribute"], "Doc 2 attribute");
+      print(res.payload);
+      expect(res.payload["rows"][keyList[0]]["key"], equals('8docid1'));
+      expect(res.payload["rows"][keyList[0]]["payload"]["title"], "Document 1");
+      expect(res.payload["rows"][keyList[0]]["payload"]["version"], 1);
+      expect(res.payload["rows"][keyList[0]]["payload"]["attribute"], "Doc 1 attribute");
+      expect(res.payload["rows"][keyList[1]]["key"], equals('8docid2'));
+      expect(res.payload["rows"][keyList[1]]["payload"]["title"], "Document 2");
+      expect(res.payload["rows"][keyList[1]]["payload"]["version"], 2);
+      expect(res.payload["rows"][keyList[1]]["payload"]["attribute"], "Doc 2 attribute");
     });
 
     test("8. Check - Get All Docs Offline -  New Sporran", () async {
@@ -229,14 +230,14 @@ void runScenario3(Wilt wilt, SporranInitialiser initialiser, SporranFactory getS
       final List keyList = res.keyList;
       expect(keyList[0], '8docid1');
       expect(keyList[1], '8docid2');
-      expect(res.payload[keyList[0]]["key"], equals('8docid1'));
-      expect(res.payload[keyList[0]]["payload"]["title"], "Document 1");
-      expect(res.payload[keyList[0]]["payload"]["version"], 1);
-      expect(res.payload[keyList[0]]["payload"]["attribute"], "Doc 1 attribute");
-      expect(res.payload[keyList[1]]["key"], equals('8docid2'));
-      expect(res.payload[keyList[1]]["payload"]["title"], "Document 2");
-      expect(res.payload[keyList[1]]["payload"]["version"], 2);
-      expect(res.payload[keyList[1]]["payload"]["attribute"], "Doc 2 attribute");
+      expect(res.payload["rows"][keyList[0]]["key"], equals('8docid1'));
+      expect(res.payload["rows"][keyList[0]]["payload"]["title"], "Document 1");
+      expect(res.payload["rows"][keyList[0]]["payload"]["version"], 1);
+      expect(res.payload["rows"][keyList[0]]["payload"]["attribute"], "Doc 1 attribute");
+      expect(res.payload["rows"][keyList[1]]["key"], equals('8docid2'));
+      expect(res.payload["rows"][keyList[1]]["payload"]["title"], "Document 2");
+      expect(res.payload["rows"][keyList[1]]["payload"]["version"], 2);
+      expect(res.payload["rows"][keyList[1]]["payload"]["attribute"], "Doc 2 attribute");
       
     });
   });

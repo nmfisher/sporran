@@ -41,7 +41,7 @@ class SporranDatabase {
       this._user = null,
       this._password = null,
       this._preserveLocalDatabase = false,
-      this.localOnly = true]) {
+      this.localOnly = false]) {
     _initialise();
   }
 

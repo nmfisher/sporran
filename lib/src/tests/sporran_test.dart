@@ -821,9 +821,7 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
         expect(res.rev, isNull);
         expect(res.payload, isNotNull);
         final dynamic successResponse = res.payload;
-        print(successResponse);
         expect(successResponse["total_rows"], equals(3));
-        
         expect(successResponse["rows"][0]["id"], equals('docid1'));
         expect(successResponse["rows"][1]["id"], equals('docid2'));
         expect(successResponse["rows"][2]["id"], equals('docid3'));
@@ -853,13 +851,14 @@ void run(Wilt wilt, SporranInitialiser initialiser, SporranFactory getSporran) a
       expect(res.id, isNull);
       expect(res.rev, isNull);
       expect(res.payload, isNotNull);
-      expect(res.payload.length, 6);
-      expect(res.payload['docid1']["payload"]["title"], "Document 1");
-      expect(res.payload['docid2']["payload"]["title"], "Document 2");
-      expect(res.payload['docid3']["payload"]["title"], "Document 3");
-      expect(res.payload['docid1offline']["payload"]["title"], "Document 1");
-      expect(res.payload['docid2offline']["payload"]["title"], "Document 2");
-      expect(res.payload['docid3offline']["payload"]["title"], "Document 3");
+      print(res.payload);
+      expect(res.payload["rows"].length, 6);
+      expect(res.payload["rows"]['docid1']["payload"]["title"], "Document 1");
+      expect(res.payload["rows"]['docid2']["payload"]["title"], "Document 2");
+      expect(res.payload["rows"]['docid3']["payload"]["title"], "Document 3");
+      expect(res.payload["rows"]['docid1offline']["payload"]["title"], "Document 1");
+      expect(res.payload["rows"]['docid2offline']["payload"]["title"], "Document 2");
+      expect(res.payload["rows"]['docid3offline']["payload"]["title"], "Document 3");
     });
 
     test("6. Get Database Info Offline", () {

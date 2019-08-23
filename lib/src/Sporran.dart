@@ -38,7 +38,7 @@ class Sporran {
 
   /// Construction.
   ///
-  Sporran(SporranInitialiser initialiser, Stream<bool> connectivity, WiltClientFactory wiltFactory, EventFactory eventFactory) {
+  Sporran(SporranInitialiser initialiser, Stream<bool> connectivity, WiltClientFactory wiltFactory, EventFactory eventFactory, bool localOnly) {
     
     if (initialiser == null) {
       throw new SporranException(SporranException.noInitialiserEx);
@@ -60,7 +60,8 @@ class Sporran {
         initialiser.scheme,
         initialiser.username,
         initialiser.password,
-        initialiser.preserveLocal);
+        initialiser.preserveLocal,
+        localOnly);
 
     /**
      * Online/offline listeners
@@ -560,7 +561,7 @@ class Sporran {
     res.localResponse = true;
     res.operation = getAllDocsc;
     res.ok = true;
-    res.payload = documents;
+    res.payload = {"rows":documents};
     res.totalRows = documents.length;
     res.keyList = documents.keys.toList().cast<String>();
     return res;
