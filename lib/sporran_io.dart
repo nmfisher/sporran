@@ -31,7 +31,7 @@ eventWrapper.Event _eventFactory(String type, String name) => new eventWrapper.E
 
 Future<Sporran> getSporran(SporranInitialiser initialiser, Stream<bool> connectivity) async { 
   final Sporran sporran = Sporran(initialiser, connectivity, _getWiltClient, _eventFactory);
-  print("Created Sporran instance, waiting for initialization to complete.")
+  print("Created Sporran instance, waiting for initialization to complete.");
   await sporran.onReady.first;
   return sporran;
 }

@@ -40,7 +40,7 @@ void main() async {
   initialiser.username = userName;
   initialiser.password = userPassword;
   initialiser.preserveLocal = false;
-  var sporranFactory = (SporranInitialiser initialiser) {
+  final Function sporranFactory = (SporranInitialiser initialiser) {
     return getSporran(initialiser, Stream.empty());
   };
   run(wilt, initialiser, sporranFactory);

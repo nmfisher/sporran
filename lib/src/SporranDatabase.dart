@@ -45,7 +45,7 @@ class SporranDatabase {
     _initialise();
   }
 
-  void _initialise() {
+  Future _initialise() async {
     if (_lawndart == null)
       throw new SporranException(SporranException.noStoreEx);
 
@@ -127,7 +127,7 @@ class SporranDatabase {
   Map get pendingDeletes => _pendingDeletes;
 
   /// Event stream for Ready events
-  final _onReady = new StreamController<Event>.broadcast();
+  final _onReady = new StreamController<Event>();
   Stream get onReady => _onReady.stream;
 
   /// Start change notifications
@@ -212,8 +212,10 @@ class SporranDatabase {
 
   /// Signal we are ready
   void _signalReady() {
+    print("Signaling ready");
     final Event e = _eventFactory('Event', 'SporranReady');
     _onReady.add(e);
+    print("Signaling dispatched");
   }
 
   /// Create and/or connect to CouchDb
