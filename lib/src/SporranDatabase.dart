@@ -40,7 +40,8 @@ class SporranDatabase {
       this._scheme = "http://",
       this._user = null,
       this._password = null,
-      this._preserveLocalDatabase = false]) {
+      this._preserveLocalDatabase = false,
+      this.localOnly = true]) {
     _initialise();
   }
 
@@ -57,9 +58,17 @@ class SporranDatabase {
     if (_user != null) {
       _wilt.login(_user, _password);
     }
+
     // Open CouchDb
-    connectToCouch();
+    if(localOnly) {
+      _noCouchDb = true;
+      _signalReady();
+    } else {
+      connectToCouch();
+    }
   }
+
+  bool localOnly;
 
   /// Host name
   String _host = null;
