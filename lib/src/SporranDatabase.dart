@@ -61,9 +61,11 @@ class SporranDatabase {
 
     // Open CouchDb
     if(localOnly) {
+      print("Local only, skipping CouchDB connection");
       _noCouchDb = true;
       _signalReady();
     } else {
+      print("Connecting to CouchDB...");
       connectToCouch();
     }
   }

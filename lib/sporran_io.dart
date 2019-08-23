@@ -30,7 +30,8 @@ Wilt _getWiltClient(String host, String port, String scheme) => WiltServerClient
 eventWrapper.Event _eventFactory(String type, String name) => new eventWrapper.Event.eventType(type, name);
 
 Future<Sporran> getSporran(SporranInitialiser initialiser, Stream<bool> connectivity) async { 
-  var sporran = Sporran(initialiser, connectivity, _getWiltClient, _eventFactory);
+  final Sporran sporran = Sporran(initialiser, connectivity, _getWiltClient, _eventFactory);
+  print("Created Sporran instance, waiting for initialization to complete.")
   await sporran.onReady.first;
   return sporran;
 }
