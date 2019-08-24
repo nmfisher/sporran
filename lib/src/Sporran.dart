@@ -217,7 +217,7 @@ class Sporran {
       res.localResponse = true;
       res.ok = !document.isEmpty;
       if(res.ok) {
-        res.payload = document["payload"];
+        res.payload = document;
         res.rev = document["_rev"];;
       }
       return res;
