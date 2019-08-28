@@ -329,7 +329,7 @@ class SporranDatabase {
 
     final dynamic document = {
       "key":key,
-      "rev":revision,
+      "_rev":revision,
       "status":updateStatus,
       "payload":update
     };
